@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cities</title>
+<style>
+:root{
+  --bg:#f7f6f2;--surface:#ffffff;--surface-2:#f1efe8;--text:#1a1a19;--text-2:#52514e;--muted:#898781;
+  --border:rgba(11,11,11,.12);--border-strong:rgba(11,11,11,.25);--accent:#185fa5;--accent-bg:#e6f1fb;--grid:#e1e0d9;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--s7:#6250d6;--s8:#e34948;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141413;--surface:#1f1f1d;--surface-2:#2a2a28;--text:#f0efec;--text-2:#c3c2b7;--muted:#898781;
+  --border:rgba(255,255,255,.12);--border-strong:rgba(255,255,255,.25);--accent:#85b7eb;--accent-bg:#0c447c;--grid:#2c2c2a;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;}}
+:root[data-theme="dark"]{
+  --bg:#141413;--surface:#1f1f1d;--surface-2:#2a2a28;--text:#f0efec;--text-2:#c3c2b7;--muted:#898781;
+  --border:rgba(255,255,255,.12);--border-strong:rgba(255,255,255,.25);--accent:#85b7eb;--accent-bg:#0c447c;--grid:#2c2c2a;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:24px;font-weight:600;margin:0 0 4px}
+.sub{color:var(--text-2);margin:0 0 20px;font-size:14px}
+button,select{font:inherit;color:inherit}
+select{background:var(--surface);border:1px solid var(--border-strong);border-radius:8px}
+:root{color-scheme:light dark}
+.chip{font-size:13px;padding:5px 12px;border:1px solid var(--border-strong);background:var(--surface);border-radius:8px;cursor:pointer}
+.chip:hover{background:var(--surface-2)}
+.chip.on{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.lbl{font-size:13px;color:var(--text-2)}
+#cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:28px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:left;cursor:pointer}
+.card:hover{border-color:var(--border-strong)}
+.card.on{outline:2px solid var(--accent);outline-offset:-1px}
+.card .n{font-size:16px;font-weight:600}
+.card .m{font-size:12px;color:var(--text-2);margin:2px 0 10px}
+.card .v{font-size:22px;font-weight:600}
+.card .f{font-size:12px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 18px}
+.tile{background:var(--surface-2);border-radius:8px;padding:10px 12px}
+.tile .v{font-size:20px;font-weight:600}
+.tile .f{font-size:12px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--text-2);margin:4px 0 6px}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+#plotwrap{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 8px 0}
+#tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5;opacity:0;min-width:200px;box-shadow:0 4px 14px rgba(0,0,0,.12);z-index:2}
+.row:hover .hit{fill:var(--surface-2)}
+.err{background:#fcebeb;color:#791f1f;border-radius:8px;padding:12px 14px;font-size:14px}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+#picker{display:none;margin-top:12px;font-size:14px}
+#picker label{display:block;margin:6px 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Cities</h1>
+  <p class="sub">Pick a city to see its upcoming events and what a trip there costs.</p>
+
+  <div id="status" class="lbl">Loading data…</div>
+  <div id="picker">
+    <p>The page couldn't load the data files on its own (this happens when the page is opened straight from your computer). Choose them here:</p>
+    <label>Events CSV <input type="file" id="fEv" accept=".csv"></label>
+    <label>City costs Excel <input type="file" id="fCo" accept=".xlsx,.xls"></label>
+  </div>
+
+  <div id="app" hidden>
+    <div class="bar">
+      <span class="lbl">Cities</span>
+      <span class="lbl" style="display:flex;align-items:center;gap:6px">Travelers <span id="ppl" style="display:flex;gap:4px"></span></span>
+    </div>
+    <div id="cards"></div>
+    <section id="detail"></section>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ---------- Config: file locations and the column names this page reads ----------
+const CONFIG = {
+  eventsFile: "data/major_event_ticket_prices.csv",
+  costsFile: "data/city_costs.xlsx",
+  ev: {
+    city: "pilot_city", name: "event_name", type: "event_type", date: "event_date",
+    venue: "canonical_major_venue", venueFallback: "venue_name",
+    priceForTwo: "last_valid_ticket_cost_for_two", priceForTwoFallback: "current_ticket_cost_for_two"
+  },
+  // Cost columns are found by matching these words in the Excel header row
+  costs: { metro: "metro", hotel: "hotel", meal: "inexpensive meal", parking: "parking / day", transit: "transit" },
+  maxTravelers: 4, peoplePerRoom: 2, nameMaxLength: 34
+};
+
+const SERIES = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const money = v => "$" + Math.round(v).toLocaleString();
+const median = a => { const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length ? (s.length%2 ? s[m] : (s[m-1]+s[m])/2) : NaN; };
+const norm = s => String(s ?? "").toLowerCase().replace(/\s+/g," ").trim();
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const fmtDate = d => d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+const short = s => s.length > CONFIG.nameMaxLength ? s.slice(0, CONFIG.nameMaxLength-1) + "…" : s;
+
+let EVENTS = [], COSTS = {}, TYPES = [], state = { city:null, type:"all", sort:"trip", n:1 };
+
+// ---------- Loading ----------
+async function loadFromUrls(){
+  const [evText, coBuf] = await Promise.all([
+    fetch(CONFIG.eventsFile).then(r => { if(!r.ok) throw new Error(CONFIG.eventsFile+" ("+r.status+")"); return r.text(); }),
+    fetch(CONFIG.costsFile).then(r => { if(!r.ok) throw new Error(CONFIG.costsFile+" ("+r.status+")"); return r.arrayBuffer(); })
+  ]);
+  init(evText, coBuf);
+}
+function parseEvents(text){
+  const rows = Papa.parse(text, { header:true, skipEmptyLines:true, dynamicTyping:false }).data;
+  const c = CONFIG.ev;
+  return rows.map(r => {
+    let p2 = parseFloat(r[c.priceForTwo]);
+    if(!(p2 > 0)) p2 = parseFloat(r[c.priceForTwoFallback]);
+    const d = new Date(r[c.date] + "T00:00:00");
+    return { city:(r[c.city]||"").trim(), name:(r[c.name]||"").trim(), type:norm(r[c.type]) || "other",
+             date:d, venue:(r[c.venue] || r[c.venueFallback] || "").trim(), perPerson: p2 > 0 ? p2/2 : NaN };
+  }).filter(e => e.city && e.name && isFinite(e.perPerson) && !isNaN(e.date));
+}
+function parseCosts(buf){
+  const wb = XLSX.read(buf, { type:"array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const grid = XLSX.utils.sheet_to_json(ws, { header:1, blankrows:true, defval:null });
+  const hdrIdx = grid.findIndex(r => r && norm(r[0]) === CONFIG.costs.metro);
+  if(hdrIdx < 0) throw new Error("Couldn't find a header row starting with \"Metro\" in the city costs sheet.");
+  const hdr = grid[hdrIdx].map(norm);
+  const col = key => { const i = hdr.findIndex(h => h.includes(CONFIG.costs[key])); if(i<0) throw new Error("City costs sheet has no column containing \""+CONFIG.costs[key]+"\"."); return i; };
+  const ix = { hotel:col("hotel"), meal:col("meal"), parking:col("parking"), transit:col("transit") };
+  const out = {};
+  for(let i = hdrIdx+1; i < grid.length; i++){
+    const r = grid[i]; if(!r || r[0] == null || String(r[0]).trim() === "") break;
+    out[String(r[0]).trim()] = { hotel:+r[ix.hotel], meal:+r[ix.meal], parking:+r[ix.parking], transit:+r[ix.transit] };
+  }
+  return out;
+}
+// Matches an event city ("Houston") to a cost row ("Houston metro") without hard-coded names
+function matchCost(city, costs){
+  const c = norm(city), keys = Object.keys(costs);
+  const k = keys.find(k => norm(k) === c) || keys.find(k => norm(k).startsWith(c)) || keys.find(k => c.startsWith(norm(k)));
+  return k ? costs[k] : null;
+}
+function init(evText, coBuf){
+  const ev = parseEvents(evText), co = parseCosts(coBuf);
+  const missing = [...new Set(ev.map(e => e.city))].filter(c => !matchCost(c, co));
+  EVENTS = ev.filter(e => matchCost(e.city, co));
+  COSTS = Object.fromEntries([...new Set(EVENTS.map(e => e.city))].map(c => [c, matchCost(c, co)]));
+  TYPES = [...new Set(EVENTS.map(e => e.type))].sort();
+  if(!EVENTS.length) throw new Error("No events matched a city in the city costs sheet.");
+  document.getElementById("status").textContent = missing.length ? "Note: no city costs found for " + missing.join(", ") + ", so those events are hidden." : "";
+  document.getElementById("picker").style.display = "none";
+  document.getElementById("app").hidden = false;
+  state.city = cityList()[0];
+  render();
+}
+
+// ---------- Cost model ----------
+function stay(city){
+  const k = COSTS[city], rooms = Math.ceil(state.n / CONFIG.peoplePerRoom);
+  const hotel = rooms * k.hotel, meals = state.n * k.meal, parking = k.parking;
+  return { rooms, hotel, meals, parking, total: hotel + meals + parking };
+}
+const tickets = e => e.perPerson * state.n;
+const typeColor = t => css(SERIES[TYPES.indexOf(t) % SERIES.length]);
+const forN = () => state.n === 1 ? "1 person" : state.n + " people";
+function citySummary(c){
+  const evs = EVENTS.filter(e => e.city === c), st = stay(c), m = median(evs.map(tickets));
+  return { count: evs.length, medTickets: m, stay: st.total, trip: m + st.total };
+}
+const cityList = () => Object.keys(COSTS).sort((a,b) => citySummary(a).trip - citySummary(b).trip);
+
+// ---------- Rendering ----------
+function render(){ renderPeople(); renderCards(); renderDetail(); }
+function renderPeople(){
+  const el = document.getElementById("ppl"); el.innerHTML = "";
+  for(let n=1; n<=CONFIG.maxTravelers; n++){
+    const b = document.createElement("button"); b.className = "chip" + (n===state.n ? " on" : ""); b.textContent = n;
+    b.setAttribute("aria-label", n + " travelers"); b.onclick = () => { state.n = n; render(); }; el.appendChild(b);
+  }
+}
+function renderCards(){
+  const el = document.getElementById("cards"); el.innerHTML = "";
+  cityList().forEach((c,i) => {
+    const s = citySummary(c), b = document.createElement("button");
+    b.className = "card" + (c===state.city ? " on" : "");
+    b.innerHTML = `<div class="n">${c}</div><div class="m">${s.count} events${i===0?" · cheapest":""}</div>
+      <div class="lbl">Typical trip, ${forN()}</div><div class="v">${money(s.trip)}</div>
+      <div class="f">${money(s.medTickets)} tickets + ${money(s.stay)} stay</div>`;
+    b.onclick = () => { state.city = c; state.type = "all"; render(); };
+    el.appendChild(b);
+  });
+}
+function renderDetail(){
+  const c = state.city, k = COSTS[c], st = stay(c);
+  const cityEvents = EVENTS.filter(e => e.city === c);
+  let evs = cityEvents.filter(e => state.type === "all" || e.type === state.type)
+    .map(e => ({ ...e, tk: tickets(e), trip: tickets(e) + st.total }));
+  evs.sort((a,b) => state.sort === "date" ? a.date - b.date : a.trip - b.trip);
+  const trips = cityEvents.map(e => tickets(e) + st.total);
+  const typesHere = TYPES.filter(t => cityEvents.some(e => e.type === t));
+  const el = document.getElementById("detail");
+  el.innerHTML = `
+    <div class="bar"><h2 style="margin:0;font-size:20px;font-weight:600">${c}</h2>
+      <span class="lbl">One-night stay for ${forN()}: <b style="color:var(--text)">${money(st.total)}</b> (${st.rooms} room${st.rooms>1?"s":""}, meals, parking)</span></div>
+    <div class="tiles">
+      <div class="tile"><div class="lbl">Hotel / night</div><div class="v">${money(k.hotel)}</div><div class="f">per room</div></div>
+      <div class="tile"><div class="lbl">Inexpensive meal</div><div class="v">${money(k.meal)}</div><div class="f">per person</div></div>
+      <div class="tile"><div class="lbl">Parking / day</div><div class="v">${money(k.parking)}</div><div class="f">per car</div></div>
+      <div class="tile"><div class="lbl">Trip cost range</div><div class="v">${money(Math.min(...trips))}–${money(Math.max(...trips))}</div><div class="f">${forN()}</div></div>
+    </div>
+    <div class="bar">
+      <div id="types" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      <label class="lbl">Sort <select id="sort" style="margin-left:4px;padding:4px"><option value="trip">Cheapest</option><option value="date">Soonest</option></select></label>
+    </div>
+    <div class="legend">
+      <span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>Tickets</span>
+      <span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="currentColor"/></svg>Total trip</span>
+      ${typesHere.map(t => `<span><i class="sw" style="background:${typeColor(t)}"></i>${cap(t)}</span>`).join("")}
+    </div>
+    <div id="plotwrap"><svg id="plot" width="100%" role="img" aria-label="Ticket cost versus total trip cost for each event in ${c}"></svg><div id="tip"></div></div>
+    <p class="note">Ticket price is the cheapest available price per person from SeatData. The stay is one night: one hotel room per ${CONFIG.peoplePerRoom} people, one inexpensive meal per person and one day of parking.</p>`;
+  const tw = document.getElementById("types");
+  [["all","All"], ...typesHere.map(t => [t, cap(t)])].forEach(([v,l]) => {
+    const b = document.createElement("button"); b.className = "chip" + (state.type===v ? " on" : ""); b.textContent = l;
+    b.onclick = () => { state.type = v; renderDetail(); }; tw.appendChild(b);
+  });
+  const sel = document.getElementById("sort"); sel.value = state.sort; sel.onchange = () => { state.sort = sel.value; renderDetail(); };
+  drawPlot(evs, st);
+}
+function drawPlot(evs, st){
+  const svg = document.getElementById("plot"), tip = document.getElementById("tip"), NS = "http://www.w3.org/2000/svg";
+  const W = 960, RH = 38, T = 6, L = 320, R = W - 70, H = T + evs.length*RH + 30;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  // Shared scale across all cities so cities are comparable
+  const maxAll = Math.max(...Object.keys(COSTS).flatMap(c => { const s = stay(c).total; return EVENTS.filter(e => e.city===c).map(e => tickets(e) + s); }));
+  const step = niceStep(maxAll / 5), top = Math.ceil(maxAll / step) * step;
+  const x = v => L + v / top * (R - L);
+  const mk = (t,a,p) => { const e = document.createElementNS(NS,t); for(const k in a) e.setAttribute(k,a[k]); (p||svg).appendChild(e); return e; };
+  for(let v=0; v<=top; v+=step){
+    mk("line",{x1:x(v),x2:x(v),y1:T,y2:T+evs.length*RH,stroke:css("--grid")});
+    mk("text",{x:x(v),y:H-10,"text-anchor":"middle","font-size":12,fill:css("--muted")}).textContent = money(v);
+  }
+  if(!evs.length){ mk("text",{x:W/2,y:40,"text-anchor":"middle","font-size":14,fill:css("--muted")}).textContent = "No events of this type"; return; }
+  evs.forEach((e,i) => {
+    const y = T + i*RH + RH/2, col = typeColor(e.type), g = mk("g",{class:"row"});
+    mk("rect",{class:"hit",x:0,y:y-RH/2+1,width:W,height:RH-2,rx:6,fill:"transparent"},g);
+    mk("text",{x:8,y:y-2,"font-size":14,fill:css("--text")},g).textContent = short(e.name);
+    mk("text",{x:8,y:y+13,"font-size":12,fill:css("--muted")},g).textContent = fmtDate(e.date) + " · " + e.venue;
+    mk("line",{x1:x(e.tk),x2:x(e.trip),y1:y,y2:y,stroke:col,"stroke-width":2.5,"stroke-opacity":.45,"stroke-linecap":"round"},g);
+    mk("circle",{cx:x(e.tk),cy:y,r:5.5,fill:css("--surface"),stroke:col,"stroke-width":2.5},g);
+    mk("circle",{cx:x(e.trip),cy:y,r:6.5,fill:col,stroke:css("--surface"),"stroke-width":2},g);
+    mk("text",{x:x(e.trip)+11,y:y+4,"font-size":13,fill:css("--text-2")},g).textContent = money(e.trip);
+    g.addEventListener("mousemove", m => {
+      const b = document.getElementById("plotwrap").getBoundingClientRect();
+      const line = (l,v) => `<div style="display:flex;justify-content:space-between;gap:16px"><span style="color:var(--text-2)">${l}</span><span>${money(v)}</span></div>`;
+      tip.innerHTML = `<div style="font-weight:600;margin-bottom:4px">${e.name}</div>` +
+        line(`Tickets (${state.n} × ${money(e.perPerson)})`, e.tk) + line("Hotel", st.hotel) + line("Meals", st.meals) + line("Parking", st.parking) +
+        `<div style="display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--border);margin-top:4px;padding-top:4px;font-weight:600"><span>Trip total</span><span>${money(e.trip)}</span></div>
+         <div style="color:var(--muted);margin-top:2px">Tickets are ${Math.round(e.tk/e.trip*100)}% of the trip</div>`;
+      let lx = m.clientX - b.left + 14, ly = m.clientY - b.top + 12;
+      if(lx > b.width - 230) lx = m.clientX - b.left - 230;
+      tip.style.left = lx + "px"; tip.style.top = ly + "px"; tip.style.opacity = 1;
+    });
+    g.addEventListener("mouseleave", () => tip.style.opacity = 0);
+  });
+}
+function niceStep(raw){ const p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10) * p; }
+
+// ---------- Start ----------
+function showError(msg){ const s = document.getElementById("status"); s.className = "err"; s.textContent = msg; }
+function enablePicker(){
+  document.getElementById("picker").style.display = "block";
+  const fEv = document.getElementById("fEv"), fCo = document.getElementById("fCo");
+  const tryLoad = async () => {
+    if(!fEv.files[0] || !fCo.files[0]) return;
+    try { init(await fEv.files[0].text(), await fCo.files[0].arrayBuffer()); document.getElementById("status").className = "lbl"; }
+    catch(err){ showError(err.message); }
+  };
+  fEv.onchange = tryLoad; fCo.onchange = tryLoad;
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if(EVENTS.length) renderDetail(); });
+loadFromUrls().catch(err => {
+  if(location.protocol === "file:" || err instanceof TypeError){ document.getElementById("status").textContent = ""; enablePicker(); }
+  else { showError("Couldn't load the data: " + err.message); enablePicker(); }
+});
+</script>
+</body>
+</html>
