@@ -3,77 +3,125 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cities</title>
+<title>Cities | Cost of Attending Events</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
 <style>
+/* Design tokens: cream page, deep slate ink, one blue for selection.
+   Category colors are reserved for event types in the chart. */
 :root{
-  --bg:#f7f6f2;--surface:#ffffff;--surface-2:#f1efe8;--text:#1a1a19;--text-2:#52514e;--muted:#898781;
-  --border:rgba(11,11,11,.12);--border-strong:rgba(11,11,11,.25);--accent:#185fa5;--accent-bg:#e6f1fb;--grid:#e1e0d9;
-  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--s7:#6250d6;--s8:#e34948;
+  color-scheme:light;
+  --cream:#f8f1e3; --paper:#fffaf0; --sand:#ece2cc; --rule:#ddd0b4;
+  --ink:#1e2a30; --ink-2:#4d5559; --ink-3:#7d7f78;
+  --select:#1d4e89; --select-wash:#e3ebf3;
+  --stay:#cbb68c;
+  --concert:#2a78d6; --sports:#e0612d; --theater:#17986b; --other:#7a5bd1;
+  --r:4px;
+  --cond:"wdth" 68; --norm:"wdth" 100;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#141413;--surface:#1f1f1d;--surface-2:#2a2a28;--text:#f0efec;--text-2:#c3c2b7;--muted:#898781;
-  --border:rgba(255,255,255,.12);--border-strong:rgba(255,255,255,.25);--accent:#85b7eb;--accent-bg:#0c447c;--grid:#2c2c2a;
-  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;}}
-:root[data-theme="dark"]{
-  --bg:#141413;--surface:#1f1f1d;--surface-2:#2a2a28;--text:#f0efec;--text-2:#c3c2b7;--muted:#898781;
-  --border:rgba(255,255,255,.12);--border-strong:rgba(255,255,255,.25);--accent:#85b7eb;--accent-bg:#0c447c;--grid:#2c2c2a;
-  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:1000px;margin:0 auto;padding:24px 16px 48px}
-h1{font-size:24px;font-weight:600;margin:0 0 4px}
-.sub{color:var(--text-2);margin:0 0 20px;font-size:14px}
-button,select{font:inherit;color:inherit}
-select{background:var(--surface);border:1px solid var(--border-strong);border-radius:8px}
-:root{color-scheme:light dark}
-.chip{font-size:13px;padding:5px 12px;border:1px solid var(--border-strong);background:var(--surface);border-radius:8px;cursor:pointer}
-.chip:hover{background:var(--surface-2)}
-.chip.on{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
-.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-.lbl{font-size:13px;color:var(--text-2)}
-#cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:28px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:left;cursor:pointer}
-.card:hover{border-color:var(--border-strong)}
-.card.on{outline:2px solid var(--accent);outline-offset:-1px}
-.card .n{font-size:16px;font-weight:600}
-.card .m{font-size:12px;color:var(--text-2);margin:2px 0 10px}
-.card .v{font-size:22px;font-weight:600}
-.card .f{font-size:12px;color:var(--muted)}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 18px}
-.tile{background:var(--surface-2);border-radius:8px;padding:10px 12px}
-.tile .v{font-size:20px;font-weight:600}
-.tile .f{font-size:12px;color:var(--muted)}
-.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--text-2);margin:4px 0 6px}
-.legend span{display:flex;align-items:center;gap:6px}
-.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
-#plotwrap{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 8px 0}
-#tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5;opacity:0;min-width:200px;box-shadow:0 4px 14px rgba(0,0,0,.12);z-index:2}
-.row:hover .hit{fill:var(--surface-2)}
-.err{background:#fcebeb;color:#791f1f;border-radius:8px;padding:12px 14px;font-size:14px}
-.note{font-size:12px;color:var(--muted);margin-top:10px}
-#picker{display:none;margin-top:12px;font-size:14px}
-#picker label{display:block;margin:6px 0}
+html{background:var(--cream)}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;font-variation-settings:var(--norm);font-size:16px;line-height:1.55}
+main{max-width:1120px;margin:0 auto;padding:40px 24px 64px}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--select);outline-offset:2px}
+
+/* Masthead */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px;margin-bottom:32px}
+h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-variation-settings:var(--cond);letter-spacing:-.01em}
+.lede{margin:10px 0 0;max-width:46ch;color:var(--ink-2)}
+.party{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-size:15px}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:var(--r);overflow:hidden}
+.seg button{border:0;background:transparent;padding:6px 13px;cursor:pointer;font-weight:600;min-width:38px}
+.seg button+button{border-left:1px solid var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--cream)}
+
+/* Two-column layout: ranking on the left, chosen city on the right */
+.layout{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:48px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:1fr;gap:32px}}
+
+/* City ranking */
+.rank-head{display:flex;justify-content:space-between;color:var(--ink-3);font-size:13px;padding:0 10px 8px;border-bottom:1px solid var(--rule)}
+.city{display:grid;grid-template-columns:1fr auto;gap:2px 12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule);padding:14px 10px 12px;cursor:pointer;border-radius:0}
+.city:hover{background:var(--paper)}
+.city[aria-current="true"]{background:var(--select-wash);box-shadow:inset 3px 0 0 var(--select)}
+.city .nm{font-size:26px;line-height:1;font-weight:700;font-variation-settings:var(--cond)}
+.city .tot{font-size:26px;line-height:1;font-weight:700;font-variation-settings:var(--cond);text-align:right;font-feature-settings:"tnum"}
+.city .bar{grid-column:1/-1;display:flex;height:8px;margin-top:10px;background:transparent}
+.city .bar i{display:block;height:100%}
+.city .bar .tk{background:var(--ink);border-radius:2px 0 0 2px}
+.city .bar .st{background:var(--stay);border-radius:0 2px 2px 0;margin-left:2px}
+.city .split{grid-column:1/-1;font-size:13px;color:var(--ink-2);margin-top:6px}
+.key{display:flex;gap:18px;font-size:13px;color:var(--ink-2);margin:12px 10px 0}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.key b{display:inline-block;width:14px;height:8px;border-radius:2px}
+
+/* Chosen city */
+.c-name{margin:0;font-size:clamp(48px,7vw,84px);line-height:.9;font-weight:800;font-variation-settings:var(--cond);letter-spacing:-.015em}
+.c-sum{margin:14px 0 22px;font-size:19px;max-width:52ch}
+.c-sum strong{font-weight:700}
+.costs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 28px;padding:0;list-style:none;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.costs li{padding:10px 14px 12px}
+.costs li:first-child{padding-left:0}
+.costs li+li{border-left:1px solid var(--rule)}
+@media (max-width:600px){.costs{grid-template-columns:repeat(2,minmax(0,1fr))}.costs li{padding-left:12px}.costs li:nth-child(odd){padding-left:0;border-left:0}.costs li:nth-child(n+3){border-top:1px solid var(--rule)}}
+.costs .k{font-size:13px;color:var(--ink-2)}
+.costs .v{font-size:28px;font-weight:700;font-variation-settings:var(--cond);line-height:1.1;font-feature-settings:"tnum"}
+.costs .u{font-size:13px;color:var(--ink-3)}
+.tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.types{display:flex;flex-wrap:wrap;gap:6px}
+.types button{border:1px solid var(--rule);background:var(--paper);border-radius:var(--r);padding:5px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-size:14px}
+.types button:hover{border-color:var(--ink-3)}
+.types button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--cream)}
+.types .dot{width:9px;height:9px;border-radius:50%}
+.sort{font-size:14px;color:var(--ink-2)}
+.sort select{margin-left:6px;padding:5px 8px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper)}
+.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:13px;color:var(--ink-2);margin:6px 0 4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+#plotwrap{position:relative}
+#plot{display:block;width:100%;height:auto}
+.row:hover .hit{fill:var(--paper)}
+#tip{position:absolute;pointer-events:none;background:var(--paper);border:1px solid var(--ink);border-radius:var(--r);padding:10px 12px;font-size:13px;line-height:1.55;opacity:0;min-width:220px;z-index:2}
+#tip .t{font-weight:700;margin-bottom:4px}
+#tip .l{display:flex;justify-content:space-between;gap:18px}
+#tip .l span:first-child{color:var(--ink-2)}
+#tip .sum{border-top:1px solid var(--rule);margin-top:5px;padding-top:5px;font-weight:700}
+.note{font-size:13px;color:var(--ink-3);margin-top:14px;max-width:70ch}
+.status{color:var(--ink-2)}
+.err{background:#f6dcd3;color:#6b2412;border-radius:var(--r);padding:12px 14px}
+#picker{display:none;margin-top:12px}
+#picker label{display:block;margin:8px 0}
+@media (prefers-reduced-motion:no-preference){.city .bar i{transition:width .35s ease}}
 </style>
 </head>
 <body>
 <main>
-  <h1>Cities</h1>
-  <p class="sub">Pick a city to see its upcoming events and what a trip there costs.</p>
+  <header class="top">
+    <div>
+      <h1>Where a night out costs less</h1>
+      <p class="lede">Ticket prices plus a one-night stay, for every city we track. Pick a city to see its events.</p>
+    </div>
+    <div class="party" id="partyWrap" hidden>
+      <span id="partyLbl">Travelers</span>
+      <div class="seg" id="ppl" role="group" aria-labelledby="partyLbl"></div>
+    </div>
+  </header>
 
-  <div id="status" class="lbl">Loading data…</div>
+  <p id="status" class="status">Loading data…</p>
   <div id="picker">
-    <p>The page couldn't load the data files on its own (this happens when the page is opened straight from your computer). Choose them here:</p>
+    <p>Your browser blocked the data files because the page was opened directly from your computer. Choose the files here, or open the page through a local server.</p>
     <label>Events CSV <input type="file" id="fEv" accept=".csv"></label>
-    <label>City costs Excel <input type="file" id="fCo" accept=".xlsx,.xls"></label>
+    <label>City costs Excel file <input type="file" id="fCo" accept=".xlsx,.xls"></label>
   </div>
 
-  <div id="app" hidden>
-    <div class="bar">
-      <span class="lbl">Cities</span>
-      <span class="lbl" style="display:flex;align-items:center;gap:6px">Travelers <span id="ppl" style="display:flex;gap:4px"></span></span>
-    </div>
-    <div id="cards"></div>
-    <section id="detail"></section>
+  <div class="layout" id="app" hidden>
+    <nav aria-label="Cities ranked by typical trip cost">
+      <div class="rank-head"><span>Cheapest first</span><span id="rankUnit">Typical trip</span></div>
+      <div id="cities"></div>
+      <div class="key"><span><b style="background:var(--ink)"></b>Tickets</span><span><b style="background:var(--stay)"></b>Hotel, meals, parking</span></div>
+    </nav>
+    <section id="detail" aria-live="polite"></section>
   </div>
 </main>
 
@@ -91,17 +139,19 @@ const CONFIG = {
   },
   // Cost columns are found by matching these words in the Excel header row
   costs: { metro: "metro", hotel: "hotel", meal: "inexpensive meal", parking: "parking / day", transit: "transit" },
-  maxTravelers: 4, peoplePerRoom: 2, nameMaxLength: 34
+  maxTravelers: 4, peoplePerRoom: 2, nameMaxLength: 36
 };
 
-const SERIES = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+// Event types with a known color; any new type in the data gets --other
+const TYPE_COLOR = { concert: "--concert", sports: "--sports", theater: "--theater" };
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const money = v => "$" + Math.round(v).toLocaleString();
 const median = a => { const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length ? (s.length%2 ? s[m] : (s[m-1]+s[m])/2) : NaN; };
 const norm = s => String(s ?? "").toLowerCase().replace(/\s+/g," ").trim();
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-const fmtDate = d => d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+const fmtDate = d => d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
 const short = s => s.length > CONFIG.nameMaxLength ? s.slice(0, CONFIG.nameMaxLength-1) + "…" : s;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 let EVENTS = [], COSTS = {}, TYPES = [], state = { city:null, type:"all", sort:"trip", n:1 };
 
@@ -129,9 +179,9 @@ function parseCosts(buf){
   const ws = wb.Sheets[wb.SheetNames[0]];
   const grid = XLSX.utils.sheet_to_json(ws, { header:1, blankrows:true, defval:null });
   const hdrIdx = grid.findIndex(r => r && norm(r[0]) === CONFIG.costs.metro);
-  if(hdrIdx < 0) throw new Error("Couldn't find a header row starting with \"Metro\" in the city costs sheet.");
+  if(hdrIdx < 0) throw new Error("The city costs sheet needs a header row that starts with \"Metro\".");
   const hdr = grid[hdrIdx].map(norm);
-  const col = key => { const i = hdr.findIndex(h => h.includes(CONFIG.costs[key])); if(i<0) throw new Error("City costs sheet has no column containing \""+CONFIG.costs[key]+"\"."); return i; };
+  const col = key => { const i = hdr.findIndex(h => h.includes(CONFIG.costs[key])); if(i<0) throw new Error("The city costs sheet has no column containing \""+CONFIG.costs[key]+"\"."); return i; };
   const ix = { hotel:col("hotel"), meal:col("meal"), parking:col("parking"), transit:col("transit") };
   const out = {};
   for(let i = hdrIdx+1; i < grid.length; i++){
@@ -150,12 +200,15 @@ function init(evText, coBuf){
   const ev = parseEvents(evText), co = parseCosts(coBuf);
   const missing = [...new Set(ev.map(e => e.city))].filter(c => !matchCost(c, co));
   EVENTS = ev.filter(e => matchCost(e.city, co));
+  if(!EVENTS.length) throw new Error("No events matched a city in the city costs sheet.");
   COSTS = Object.fromEntries([...new Set(EVENTS.map(e => e.city))].map(c => [c, matchCost(c, co)]));
   TYPES = [...new Set(EVENTS.map(e => e.type))].sort();
-  if(!EVENTS.length) throw new Error("No events matched a city in the city costs sheet.");
-  document.getElementById("status").textContent = missing.length ? "Note: no city costs found for " + missing.join(", ") + ", so those events are hidden." : "";
+  const st = document.getElementById("status");
+  st.textContent = missing.length ? "No city costs found for " + missing.join(", ") + ", so those events are hidden." : "";
+  st.hidden = !missing.length;
   document.getElementById("picker").style.display = "none";
   document.getElementById("app").hidden = false;
+  document.getElementById("partyWrap").hidden = false;
   state.city = cityList()[0];
   render();
 }
@@ -167,7 +220,7 @@ function stay(city){
   return { rooms, hotel, meals, parking, total: hotel + meals + parking };
 }
 const tickets = e => e.perPerson * state.n;
-const typeColor = t => css(SERIES[TYPES.indexOf(t) % SERIES.length]);
+const typeColor = t => css(TYPE_COLOR[t] || "--other");
 const forN = () => state.n === 1 ? "1 person" : state.n + " people";
 function citySummary(c){
   const evs = EVENTS.filter(e => e.city === c), st = stay(c), m = median(evs.map(tickets));
@@ -176,23 +229,26 @@ function citySummary(c){
 const cityList = () => Object.keys(COSTS).sort((a,b) => citySummary(a).trip - citySummary(b).trip);
 
 // ---------- Rendering ----------
-function render(){ renderPeople(); renderCards(); renderDetail(); }
+function render(){ renderPeople(); renderCities(); renderDetail(); }
 function renderPeople(){
   const el = document.getElementById("ppl"); el.innerHTML = "";
   for(let n=1; n<=CONFIG.maxTravelers; n++){
-    const b = document.createElement("button"); b.className = "chip" + (n===state.n ? " on" : ""); b.textContent = n;
-    b.setAttribute("aria-label", n + " travelers"); b.onclick = () => { state.n = n; render(); }; el.appendChild(b);
+    const b = document.createElement("button"); b.textContent = n;
+    b.setAttribute("aria-pressed", n===state.n); b.setAttribute("aria-label", n === 1 ? "1 traveler" : n + " travelers");
+    b.onclick = () => { state.n = n; render(); }; el.appendChild(b);
   }
 }
-function renderCards(){
-  const el = document.getElementById("cards"); el.innerHTML = "";
-  cityList().forEach((c,i) => {
+function renderCities(){
+  const list = cityList(), max = Math.max(...list.map(c => citySummary(c).trip));
+  document.getElementById("rankUnit").textContent = "Typical trip, " + forN();
+  const el = document.getElementById("cities"); el.innerHTML = "";
+  list.forEach(c => {
     const s = citySummary(c), b = document.createElement("button");
-    b.className = "card" + (c===state.city ? " on" : "");
-    b.innerHTML = `<div class="n">${c}</div><div class="m">${s.count} events${i===0?" · cheapest":""}</div>
-      <div class="lbl">Typical trip, ${forN()}</div><div class="v">${money(s.trip)}</div>
-      <div class="f">${money(s.medTickets)} tickets + ${money(s.stay)} stay</div>`;
-    b.onclick = () => { state.city = c; state.type = "all"; render(); };
+    b.className = "city"; b.setAttribute("aria-current", c===state.city);
+    b.innerHTML = `<span class="nm">${esc(c)}</span><span class="tot">${money(s.trip)}</span>
+      <span class="bar" aria-hidden="true"><i class="tk" style="width:${s.medTickets/max*100}%"></i><i class="st" style="width:calc(${s.stay/max*100}% - 2px)"></i></span>
+      <span class="split">${money(s.medTickets)} tickets and ${money(s.stay)} stay, across ${s.count} events</span>`;
+    b.onclick = () => { state.city = c; state.type = "all"; render(); if(innerWidth < 860) document.getElementById("detail").scrollIntoView({behavior:"smooth"}); };
     el.appendChild(b);
   });
 }
@@ -203,31 +259,32 @@ function renderDetail(){
     .map(e => ({ ...e, tk: tickets(e), trip: tickets(e) + st.total }));
   evs.sort((a,b) => state.sort === "date" ? a.date - b.date : a.trip - b.trip);
   const trips = cityEvents.map(e => tickets(e) + st.total);
+  const cheapest = cityEvents.reduce((a,b) => tickets(a) <= tickets(b) ? a : b);
   const typesHere = TYPES.filter(t => cityEvents.some(e => e.type === t));
   const el = document.getElementById("detail");
   el.innerHTML = `
-    <div class="bar"><h2 style="margin:0;font-size:20px;font-weight:600">${c}</h2>
-      <span class="lbl">One-night stay for ${forN()}: <b style="color:var(--text)">${money(st.total)}</b> (${st.rooms} room${st.rooms>1?"s":""}, meals, parking)</span></div>
-    <div class="tiles">
-      <div class="tile"><div class="lbl">Hotel / night</div><div class="v">${money(k.hotel)}</div><div class="f">per room</div></div>
-      <div class="tile"><div class="lbl">Inexpensive meal</div><div class="v">${money(k.meal)}</div><div class="f">per person</div></div>
-      <div class="tile"><div class="lbl">Parking / day</div><div class="v">${money(k.parking)}</div><div class="f">per car</div></div>
-      <div class="tile"><div class="lbl">Trip cost range</div><div class="v">${money(Math.min(...trips))}–${money(Math.max(...trips))}</div><div class="f">${forN()}</div></div>
-    </div>
-    <div class="bar">
-      <div id="types" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-      <label class="lbl">Sort <select id="sort" style="margin-left:4px;padding:4px"><option value="trip">Cheapest</option><option value="date">Soonest</option></select></label>
+    <h2 class="c-name">${esc(c)}</h2>
+    <p class="c-sum">${cityEvents.length} upcoming events. A one-night trip for ${forN()} costs <strong>${money(Math.min(...trips))} to ${money(Math.max(...trips))}</strong>. The cheapest way in is ${esc(cheapest.name)}, at ${money(tickets(cheapest))} in tickets.</p>
+    <ul class="costs">
+      <li><div class="k">Hotel, per night</div><div class="v">${money(k.hotel)}</div></li>
+      <li><div class="k">Meal, per person</div><div class="v">${money(k.meal)}</div></li>
+      <li><div class="k">Parking, per day</div><div class="v">${money(k.parking)}</div></li>
+      <li><div class="k">Stay for ${forN()}</div><div class="v">${money(st.total)}</div><div class="u">${st.rooms} room${st.rooms>1?"s":""}, meals, parking</div></li>
+    </ul>
+    <div class="tools">
+      <div class="types" id="types" role="group" aria-label="Filter by event type"></div>
+      <label class="sort">Sort by <select id="sort"><option value="trip">Trip cost</option><option value="date">Date</option></select></label>
     </div>
     <div class="legend">
-      <span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>Tickets</span>
-      <span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="currentColor"/></svg>Total trip</span>
-      ${typesHere.map(t => `<span><i class="sw" style="background:${typeColor(t)}"></i>${cap(t)}</span>`).join("")}
+      <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>Tickets</span>
+      <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="currentColor"/></svg>Tickets plus stay</span>
     </div>
-    <div id="plotwrap"><svg id="plot" width="100%" role="img" aria-label="Ticket cost versus total trip cost for each event in ${c}"></svg><div id="tip"></div></div>
-    <p class="note">Ticket price is the cheapest available price per person from SeatData. The stay is one night: one hotel room per ${CONFIG.peoplePerRoom} people, one inexpensive meal per person and one day of parking.</p>`;
+    <div id="plotwrap"><svg id="plot" role="img" aria-label="Ticket cost and total trip cost for each event in ${esc(c)}"></svg><div id="tip"></div></div>
+    <p class="note">Ticket price is the cheapest listing per person on SeatData. The stay is one night: a hotel room for every ${CONFIG.peoplePerRoom} people, one inexpensive meal each and one day of parking.</p>`;
   const tw = document.getElementById("types");
-  [["all","All"], ...typesHere.map(t => [t, cap(t)])].forEach(([v,l]) => {
-    const b = document.createElement("button"); b.className = "chip" + (state.type===v ? " on" : ""); b.textContent = l;
+  [["all","All events",null], ...typesHere.map(t => [t, cap(t), typeColor(t)])].forEach(([v,l,col]) => {
+    const b = document.createElement("button"); b.setAttribute("aria-pressed", state.type===v);
+    b.innerHTML = (col ? `<span class="dot" style="background:${col}"></span>` : "") + esc(l);
     b.onclick = () => { state.type = v; renderDetail(); }; tw.appendChild(b);
   });
   const sel = document.getElementById("sort"); sel.value = state.sort; sel.onchange = () => { state.sort = sel.value; renderDetail(); };
@@ -235,59 +292,69 @@ function renderDetail(){
 }
 function drawPlot(evs, st){
   const svg = document.getElementById("plot"), tip = document.getElementById("tip"), NS = "http://www.w3.org/2000/svg";
-  const W = 960, RH = 38, T = 6, L = 320, R = W - 70, H = T + evs.length*RH + 30;
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  // Shared scale across all cities so cities are comparable
+  const W = Math.max(300, Math.round(document.getElementById("plotwrap").clientWidth));
+  const narrow = W < 600;                       // on phones the label sits above its dots
+  const RH = narrow ? 62 : 44, T = 4, L = narrow ? 8 : Math.round(W * 0.43), R = W - 64;
+  const H = T + Math.max(evs.length,1)*RH + 30;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
+  // One shared scale across all cities so switching cities shows real differences
   const maxAll = Math.max(...Object.keys(COSTS).flatMap(c => { const s = stay(c).total; return EVENTS.filter(e => e.city===c).map(e => tickets(e) + s); }));
-  const step = niceStep(maxAll / 5), top = Math.ceil(maxAll / step) * step;
+  const step = niceStep(maxAll / (narrow ? 3 : 4)), top = Math.ceil(maxAll / step) * step;
   const x = v => L + v / top * (R - L);
   const mk = (t,a,p) => { const e = document.createElementNS(NS,t); for(const k in a) e.setAttribute(k,a[k]); (p||svg).appendChild(e); return e; };
+  const rule = css("--rule"), ink = css("--ink"), ink2 = css("--ink-2"), ink3 = css("--ink-3"), cream = css("--cream");
+  const maxChars = narrow ? Math.floor(W / 8.2) : Math.floor((L - 16) / 8.4);
+  const clip = s => s.length > maxChars ? s.slice(0, maxChars - 1) + "…" : s;
   for(let v=0; v<=top; v+=step){
-    mk("line",{x1:x(v),x2:x(v),y1:T,y2:T+evs.length*RH,stroke:css("--grid")});
-    mk("text",{x:x(v),y:H-10,"text-anchor":"middle","font-size":12,fill:css("--muted")}).textContent = money(v);
+    mk("line",{x1:x(v),x2:x(v),y1:T,y2:H-26,stroke:rule,"stroke-dasharray":v===0?"":"2 4"});
+    mk("text",{x:x(v),y:H-8,"text-anchor":v===0&&narrow?"start":"middle","font-size":12,fill:ink3,"font-family":"Archivo"}).textContent = money(v);
   }
-  if(!evs.length){ mk("text",{x:W/2,y:40,"text-anchor":"middle","font-size":14,fill:css("--muted")}).textContent = "No events of this type"; return; }
+  if(!evs.length){ mk("text",{x:L,y:30,"font-size":15,fill:ink2}).textContent = "No events of this type in this city yet."; return; }
   evs.forEach((e,i) => {
-    const y = T + i*RH + RH/2, col = typeColor(e.type), g = mk("g",{class:"row"});
-    mk("rect",{class:"hit",x:0,y:y-RH/2+1,width:W,height:RH-2,rx:6,fill:"transparent"},g);
-    mk("text",{x:8,y:y-2,"font-size":14,fill:css("--text")},g).textContent = short(e.name);
-    mk("text",{x:8,y:y+13,"font-size":12,fill:css("--muted")},g).textContent = fmtDate(e.date) + " · " + e.venue;
-    mk("line",{x1:x(e.tk),x2:x(e.trip),y1:y,y2:y,stroke:col,"stroke-width":2.5,"stroke-opacity":.45,"stroke-linecap":"round"},g);
-    mk("circle",{cx:x(e.tk),cy:y,r:5.5,fill:css("--surface"),stroke:col,"stroke-width":2.5},g);
-    mk("circle",{cx:x(e.trip),cy:y,r:6.5,fill:col,stroke:css("--surface"),"stroke-width":2},g);
-    mk("text",{x:x(e.trip)+11,y:y+4,"font-size":13,fill:css("--text-2")},g).textContent = money(e.trip);
-    g.addEventListener("mousemove", m => {
+    const y0 = T + i*RH, col = typeColor(e.type), g = mk("g",{class:"row"});
+    const ty = narrow ? y0 + 17 : y0 + RH/2 - 3, sy = ty + 16, y = narrow ? y0 + 46 : y0 + RH/2;
+    mk("rect",{class:"hit",x:0,y:y0+2,width:W,height:RH-4,rx:3,fill:"transparent"},g);
+    mk("text",{x:narrow?0:6,y:ty,"font-size":15,"font-weight":600,fill:ink,"font-family":"Archivo"},g).textContent = clip(e.name);
+    mk("text",{x:narrow?0:6,y:narrow?ty+15:sy,"font-size":12,fill:ink3,"font-family":"Archivo"},g).textContent = clip(fmtDate(e.date) + ", " + e.venue);
+    if(narrow) mk("line",{x1:L,x2:R,y1:y,y2:y,stroke:rule,"stroke-width":0},g);
+    mk("line",{x1:x(e.tk),x2:x(e.trip),y1:y,y2:y,stroke:col,"stroke-width":3,"stroke-opacity":.35,"stroke-linecap":"round"},g);
+    mk("circle",{cx:x(e.tk),cy:y,r:6,fill:cream,stroke:col,"stroke-width":2.5},g);
+    mk("circle",{cx:x(e.trip),cy:y,r:7,fill:col,stroke:cream,"stroke-width":2},g);
+    mk("text",{x:x(e.trip)+12,y:y+5,"font-size":14,"font-weight":600,fill:ink,"font-family":"Archivo"},g).textContent = money(e.trip);
+    const show = (cx, cy) => {
       const b = document.getElementById("plotwrap").getBoundingClientRect();
-      const line = (l,v) => `<div style="display:flex;justify-content:space-between;gap:16px"><span style="color:var(--text-2)">${l}</span><span>${money(v)}</span></div>`;
-      tip.innerHTML = `<div style="font-weight:600;margin-bottom:4px">${e.name}</div>` +
-        line(`Tickets (${state.n} × ${money(e.perPerson)})`, e.tk) + line("Hotel", st.hotel) + line("Meals", st.meals) + line("Parking", st.parking) +
-        `<div style="display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--border);margin-top:4px;padding-top:4px;font-weight:600"><span>Trip total</span><span>${money(e.trip)}</span></div>
-         <div style="color:var(--muted);margin-top:2px">Tickets are ${Math.round(e.tk/e.trip*100)}% of the trip</div>`;
-      let lx = m.clientX - b.left + 14, ly = m.clientY - b.top + 12;
-      if(lx > b.width - 230) lx = m.clientX - b.left - 230;
+      const line = (l,v) => `<div class="l"><span>${l}</span><span>${money(v)}</span></div>`;
+      tip.innerHTML = `<div class="t">${esc(e.name)}</div>` +
+        line(`Tickets, ${state.n} × ${money(e.perPerson)}`, e.tk) + line("Hotel", st.hotel) + line("Meals", st.meals) + line("Parking", st.parking) +
+        `<div class="l sum"><span>Trip total</span><span>${money(e.trip)}</span></div>`;
+      let lx = cx - b.left + 16, ly = cy - b.top + 14;
+      if(lx > b.width - 240) lx = Math.max(0, cx - b.left - 240);
       tip.style.left = lx + "px"; tip.style.top = ly + "px"; tip.style.opacity = 1;
-    });
+    };
+    g.addEventListener("mousemove", m => show(m.clientX, m.clientY));
+    g.addEventListener("click", m => show(m.clientX, m.clientY));
     g.addEventListener("mouseleave", () => tip.style.opacity = 0);
   });
 }
 function niceStep(raw){ const p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10) * p; }
 
 // ---------- Start ----------
-function showError(msg){ const s = document.getElementById("status"); s.className = "err"; s.textContent = msg; }
+function showError(msg){ const s = document.getElementById("status"); s.hidden = false; s.className = "err"; s.textContent = msg; }
 function enablePicker(){
   document.getElementById("picker").style.display = "block";
   const fEv = document.getElementById("fEv"), fCo = document.getElementById("fCo");
   const tryLoad = async () => {
     if(!fEv.files[0] || !fCo.files[0]) return;
-    try { init(await fEv.files[0].text(), await fCo.files[0].arrayBuffer()); document.getElementById("status").className = "lbl"; }
+    try { init(await fEv.files[0].text(), await fCo.files[0].arrayBuffer()); }
     catch(err){ showError(err.message); }
   };
   fEv.onchange = tryLoad; fCo.onchange = tryLoad;
 }
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if(EVENTS.length) renderDetail(); });
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if(EVENTS.length) renderDetail(); }, 150); });
+document.fonts && document.fonts.ready.then(() => { if(EVENTS.length) renderDetail(); });
 loadFromUrls().catch(err => {
-  if(location.protocol === "file:" || err instanceof TypeError){ document.getElementById("status").textContent = ""; enablePicker(); }
-  else { showError("Couldn't load the data: " + err.message); enablePicker(); }
+  if(location.protocol === "file:" || err instanceof TypeError){ document.getElementById("status").hidden = true; enablePicker(); }
+  else { showError("The data didn't load: " + err.message); enablePicker(); }
 });
 </script>
 </body>
