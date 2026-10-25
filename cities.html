@@ -6,7 +6,7 @@
 <title>Cities | Cost of Attending Events</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet">
 <style>
 /* Design tokens: cream page, deep slate ink, one blue for selection.
    Category colors are reserved for event types in the chart. */
@@ -18,19 +18,19 @@
   --stay:#cbb68c;
   --concert:#2a78d6; --sports:#e0612d; --theater:#17986b; --other:#7a5bd1;
   --r:4px;
-  --cond:"wdth" 68; --norm:"wdth" 100;
+  --serif:"Source Serif 4",Georgia,serif; --sans:"Libre Franklin",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
 html{background:var(--cream)}
-body{margin:0;background:var(--cream);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;font-variation-settings:var(--norm);font-size:16px;line-height:1.55}
-main{max-width:1120px;margin:0 auto;padding:40px 24px 64px}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55}
+main{max-width:1560px;margin:0 auto;padding:40px clamp(16px,4vw,64px) 64px}
 button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--select);outline-offset:2px}
 
 /* Masthead */
 .top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px;margin-bottom:32px}
-h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-variation-settings:var(--cond);letter-spacing:-.01em}
-.lede{margin:10px 0 0;max-width:46ch;color:var(--ink-2)}
+h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-family:var(--serif);letter-spacing:-.01em}
+.lede{margin:10px 0 0;max-width:62ch;color:var(--ink-2)}
 .party{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-size:15px}
 .seg{display:inline-flex;border:1px solid var(--ink);border-radius:var(--r);overflow:hidden}
 .seg button{border:0;background:transparent;padding:6px 13px;cursor:pointer;font-weight:600;min-width:38px}
@@ -38,7 +38,7 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--cream)}
 
 /* Two-column layout: ranking on the left, chosen city on the right */
-.layout{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:48px;align-items:start}
+.layout{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:clamp(32px,4vw,72px);align-items:start}
 @media (max-width:860px){.layout{grid-template-columns:1fr;gap:32px}}
 
 /* City ranking */
@@ -47,7 +47,7 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .city:hover{background:var(--paper)}
 .city[aria-current="true"]{background:var(--select-wash);box-shadow:inset 3px 0 0 var(--select)}
 .city .nm{font-size:26px;line-height:1;font-weight:700;font-variation-settings:var(--cond)}
-.city .tot{font-size:26px;line-height:1;font-weight:700;font-variation-settings:var(--cond);text-align:right;font-feature-settings:"tnum"}
+.city .tot{font-size:26px;line-height:1;font-weight:700;font-family:var(--serif);text-align:right;font-feature-settings:"tnum"}
 .city .bar{grid-column:1/-1;display:flex;height:8px;margin-top:10px;background:transparent}
 .city .bar i{display:block;height:100%}
 .city .bar .tk{background:var(--ink);border-radius:2px 0 0 2px}
@@ -56,21 +56,21 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .side{position:sticky;top:20px}
 @media (max-width:860px){.side{position:static}}
 .deals{margin-top:36px}
-.deals h3{margin:0 0 4px;font-size:22px;font-weight:700;font-variation-settings:var(--cond);padding:0 10px}
+.deals h3{margin:0 0 4px;font-size:22px;font-weight:700;font-family:var(--serif);padding:0 10px}
 .deals ol{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
 .deals button{display:grid;grid-template-columns:1fr auto;gap:0 12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule);padding:10px;cursor:pointer}
 .deals button:hover{background:var(--paper)}
 .deals .dn{font-weight:600;font-size:15px;line-height:1.3;display:flex;align-items:center;gap:7px;min-width:0}
 .deals .dn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .deals .dot{width:8px;height:8px;border-radius:50%;flex:none}
-.deals .dp{font-weight:700;font-size:18px;font-variation-settings:var(--cond);font-feature-settings:"tnum"}
+.deals .dp{font-weight:700;font-size:18px;font-family:var(--serif);font-feature-settings:"tnum"}
 .deals .dm{grid-column:1/-1;font-size:12px;color:var(--ink-3);padding-left:15px}
 .key{display:flex;gap:18px;font-size:13px;color:var(--ink-2);margin:12px 10px 0}
 .key span{display:inline-flex;align-items:center;gap:6px}
 .key b{display:inline-block;width:14px;height:8px;border-radius:2px}
 
 /* Chosen city */
-.c-name{margin:0;font-size:clamp(48px,7vw,84px);line-height:.9;font-weight:800;font-variation-settings:var(--cond);letter-spacing:-.015em}
+.c-name{margin:0;font-size:clamp(48px,7vw,84px);line-height:.9;font-weight:800;font-family:var(--serif);letter-spacing:-.015em}
 .c-sum{margin:14px 0 22px;font-size:19px;max-width:52ch}
 .c-sum strong{font-weight:700}
 .costs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 28px;padding:0;list-style:none;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
@@ -79,7 +79,7 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .costs li+li{border-left:1px solid var(--rule)}
 @media (max-width:600px){.costs{grid-template-columns:repeat(2,minmax(0,1fr))}.costs li{padding-left:12px}.costs li:nth-child(odd){padding-left:0;border-left:0}.costs li:nth-child(n+3){border-top:1px solid var(--rule)}}
 .costs .k{font-size:13px;color:var(--ink-2)}
-.costs .v{font-size:28px;font-weight:700;font-variation-settings:var(--cond);line-height:1.1;font-feature-settings:"tnum"}
+.costs .v{font-size:28px;font-weight:700;font-family:var(--serif);line-height:1.1;font-feature-settings:"tnum"}
 .costs .u{font-size:13px;color:var(--ink-3)}
 .tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .types{display:flex;flex-wrap:wrap;gap:6px}
@@ -105,14 +105,23 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 #picker{display:none;margin-top:12px}
 #picker label{display:block;margin:8px 0}
 @media (prefers-reduced-motion:no-preference){.city .bar i{transition:width .35s ease}}
+/* Option D: serif for headings and city names, Libre Franklin for text and numbers */
+h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
+.c-name{font-weight:700;letter-spacing:-.02em;line-height:.95}
+.city .nm{font-weight:600;font-size:25px}
+.city .tot,.costs .v,.deals .dp{font-family:var(--sans);font-weight:600;letter-spacing:-.01em}
+.city .tot{font-size:22px}
+.costs .v{font-size:24px}
+.deals .dp{font-size:16px}
+.deals h3{font-weight:600}
 </style>
 </head>
 <body>
 <main>
   <header class="top">
     <div>
-      <h1>Where a night out costs less</h1>
-      <p class="lede">Ticket prices plus a one-night stay, for every city we track. Pick a city to see its events.</p>
+      <h1>Where your next event costs less</h1>
+      <p class="lede">Concerts, games and shows, priced with the hotel, meals and parking that come with them. Pick a city to see its events.</p>
     </div>
     <div class="party" id="partyWrap" hidden>
       <span id="partyLbl">Travelers</span>
@@ -130,9 +139,9 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
   <div class="layout" id="app" hidden>
     <div class="side">
     <nav aria-label="Cities ranked by typical trip cost">
-      <div class="rank-head"><span>Cheapest first</span><span id="rankUnit">Typical trip</span></div>
+      <div class="rank-head"><span>Cheapest first</span><span id="rankUnit">Avg. trip</span></div>
       <div id="cities"></div>
-      <div class="key"><span><b style="background:var(--ink)"></b>Tickets</span><span><b style="background:var(--stay)"></b>Hotel, meals, parking</span></div>
+      <div class="key"><span><b style="background:var(--ink)"></b>Avg. tickets</span><span><b style="background:var(--stay)"></b>Hotel, meals, parking</span></div>
     </nav>
     <section class="deals" aria-labelledby="dealsH">
       <h3 id="dealsH">Cheapest trips in any city</h3>
@@ -241,7 +250,7 @@ const tickets = e => e.perPerson * state.n;
 const typeColor = t => css(TYPE_COLOR[t] || "--other");
 const forN = () => state.n === 1 ? "1 person" : state.n + " people";
 function citySummary(c){
-  const evs = EVENTS.filter(e => e.city === c), st = stay(c), m = median(evs.map(tickets));
+  const evs = EVENTS.filter(e => e.city === c), st = stay(c), m = evs.reduce((a,e) => a + tickets(e), 0) / evs.length;
   return { count: evs.length, medTickets: m, stay: st.total, trip: m + st.total };
 }
 const cityList = () => Object.keys(COSTS).sort((a,b) => citySummary(a).trip - citySummary(b).trip);
@@ -254,7 +263,7 @@ function renderDeals(){
   all.forEach(({e, trip}) => {
     const li = document.createElement("li"), b = document.createElement("button");
     b.innerHTML = `<span class="dn"><i class="dot" style="background:${typeColor(e.type)}"></i><span>${esc(e.name)}</span></span><span class="dp">${money(trip)}</span>
-      <span class="dm">${esc(e.city)}, ${e.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})}, ${money(tickets(e))} in tickets</span>`;
+      <span class="dm">${esc(e.city)}, ${e.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})}, tickets from about ${money(e.perPerson)}</span>`;
     b.title = e.name;
     b.onclick = () => { state.city = e.city; state.type = "all"; state.sort = "trip"; render(); document.getElementById("detail").scrollIntoView({behavior:"smooth", block:"start"}); };
     li.appendChild(b); el.appendChild(li);
@@ -270,14 +279,14 @@ function renderPeople(){
 }
 function renderCities(){
   const list = cityList(), max = Math.max(...list.map(c => citySummary(c).trip));
-  document.getElementById("rankUnit").textContent = "Typical trip, " + forN();
+  document.getElementById("rankUnit").textContent = "Avg. trip, " + forN();
   const el = document.getElementById("cities"); el.innerHTML = "";
   list.forEach(c => {
     const s = citySummary(c), b = document.createElement("button");
     b.className = "city"; b.setAttribute("aria-current", c===state.city);
     b.innerHTML = `<span class="nm">${esc(c)}</span><span class="tot">${money(s.trip)}</span>
       <span class="bar" aria-hidden="true"><i class="tk" style="width:${s.medTickets/max*100}%"></i><i class="st" style="width:calc(${s.stay/max*100}% - 2px)"></i></span>
-      <span class="split">${money(s.medTickets)} tickets and ${money(s.stay)} stay, across ${s.count} events</span>`;
+      <span class="split">About ${money(s.medTickets)} in tickets and ${money(s.stay)} for the stay</span>`;
     b.onclick = () => { state.city = c; state.type = "all"; render(); if(innerWidth < 860) document.getElementById("detail").scrollIntoView({behavior:"smooth"}); };
     el.appendChild(b);
   });
@@ -294,23 +303,23 @@ function renderDetail(){
   const el = document.getElementById("detail");
   el.innerHTML = `
     <h2 class="c-name">${esc(c)}</h2>
-    <p class="c-sum">${cityEvents.length} upcoming events. A one-night trip for ${forN()} costs <strong>${money(Math.min(...trips))} to ${money(Math.max(...trips))}</strong>. The cheapest way in is ${esc(cheapest.name)}, at ${money(tickets(cheapest))} in tickets.</p>
+    <p class="c-sum">${cityEvents.length} upcoming events. A one-night trip for ${forN()} costs about <strong>${money(Math.min(...trips))} to ${money(Math.max(...trips))}</strong>. The average ticket in ${esc(c)} is about ${money(cityEvents.reduce((a,e) => a + e.perPerson, 0) / cityEvents.length)}${state.n>1?" per person":""}.</p>
     <ul class="costs">
-      <li><div class="k">Hotel, per night</div><div class="v">${money(k.hotel)}</div></li>
-      <li><div class="k">Meal, per person</div><div class="v">${money(k.meal)}</div></li>
-      <li><div class="k">Parking, per day</div><div class="v">${money(k.parking)}</div></li>
-      <li><div class="k">Stay for ${forN()}</div><div class="v">${money(st.total)}</div><div class="u">${st.rooms} room${st.rooms>1?"s":""}, meals, parking</div></li>
+      <li><div class="k">Hotel, avg. per night</div><div class="v">${money(k.hotel)}</div></li>
+      <li><div class="k">Meal, avg. per person</div><div class="v">${money(k.meal)}</div></li>
+      <li><div class="k">Parking, avg. per day</div><div class="v">${money(k.parking)}</div></li>
+      <li><div class="k">Est. stay for ${forN()}</div><div class="v">${money(st.total)}</div><div class="u">${st.rooms} room${st.rooms>1?"s":""}, meals, parking</div></li>
     </ul>
     <div class="tools">
       <div class="types" id="types" role="group" aria-label="Filter by event type"></div>
       <label class="sort">Sort by <select id="sort"><option value="trip">Trip cost</option><option value="date">Date</option></select></label>
     </div>
     <div class="legend">
-      <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>Tickets</span>
-      <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="currentColor"/></svg>Tickets plus stay</span>
+      <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>Est. tickets</span>
+      <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="currentColor"/></svg>Est. tickets plus stay</span>
     </div>
     <div id="plotwrap"><svg id="plot" role="img" aria-label="Ticket cost and total trip cost for each event in ${esc(c)}"></svg><div id="tip"></div></div>
-    <p class="note">Ticket price is the cheapest listing per person on SeatData. The stay is one night: a hotel room for every ${CONFIG.peoplePerRoom} people, one inexpensive meal each and one day of parking.</p>`;
+    <p class="note">All costs are estimates. Ticket prices are the lowest resale listings on SeatData when the data was last pulled, and they change daily. Hotel, meal and parking costs are city averages.</p>`;
   const tw = document.getElementById("types");
   [["all","All events",null], ...typesHere.map(t => [t, cap(t), typeColor(t)])].forEach(([v,l,col]) => {
     const b = document.createElement("button"); b.setAttribute("aria-pressed", state.type===v);
@@ -337,26 +346,26 @@ function drawPlot(evs, st){
   const clip = s => s.length > maxChars ? s.slice(0, maxChars - 1) + "…" : s;
   for(let v=0; v<=top; v+=step){
     mk("line",{x1:x(v),x2:x(v),y1:T,y2:H-26,stroke:rule,"stroke-dasharray":v===0?"":"2 4"});
-    mk("text",{x:x(v),y:H-8,"text-anchor":v===0&&narrow?"start":"middle","font-size":12,fill:ink3,"font-family":"Archivo"}).textContent = money(v);
+    mk("text",{x:x(v),y:H-8,"text-anchor":v===0&&narrow?"start":"middle","font-size":12,fill:ink3,"font-family":"Libre Franklin"}).textContent = money(v);
   }
   if(!evs.length){ mk("text",{x:L,y:30,"font-size":15,fill:ink2}).textContent = "No events of this type in this city yet."; return; }
   evs.forEach((e,i) => {
     const y0 = T + i*RH, col = typeColor(e.type), g = mk("g",{class:"row"});
     const ty = narrow ? y0 + 17 : y0 + RH/2 - 3, sy = ty + 16, y = narrow ? y0 + 46 : y0 + RH/2;
     mk("rect",{class:"hit",x:0,y:y0+2,width:W,height:RH-4,rx:3,fill:"transparent"},g);
-    mk("text",{x:narrow?0:6,y:ty,"font-size":15,"font-weight":600,fill:ink,"font-family":"Archivo"},g).textContent = clip(e.name);
-    mk("text",{x:narrow?0:6,y:narrow?ty+15:sy,"font-size":12,fill:ink3,"font-family":"Archivo"},g).textContent = clip(fmtDate(e.date) + ", " + e.venue);
+    mk("text",{x:narrow?0:6,y:ty,"font-size":15,"font-weight":600,fill:ink,"font-family":"Libre Franklin"},g).textContent = clip(e.name);
+    mk("text",{x:narrow?0:6,y:narrow?ty+15:sy,"font-size":12,fill:ink3,"font-family":"Libre Franklin"},g).textContent = clip(fmtDate(e.date) + ", " + e.venue);
     if(narrow) mk("line",{x1:L,x2:R,y1:y,y2:y,stroke:rule,"stroke-width":0},g);
     mk("line",{x1:x(e.tk),x2:x(e.trip),y1:y,y2:y,stroke:col,"stroke-width":3,"stroke-opacity":.35,"stroke-linecap":"round"},g);
     mk("circle",{cx:x(e.tk),cy:y,r:6,fill:cream,stroke:col,"stroke-width":2.5},g);
     mk("circle",{cx:x(e.trip),cy:y,r:7,fill:col,stroke:cream,"stroke-width":2},g);
-    mk("text",{x:x(e.trip)+12,y:y+5,"font-size":14,"font-weight":600,fill:ink,"font-family":"Archivo"},g).textContent = money(e.trip);
+    mk("text",{x:x(e.trip)+12,y:y+5,"font-size":14,"font-weight":600,fill:ink,"font-family":"Libre Franklin"},g).textContent = money(e.trip);
     const show = (cx, cy) => {
       const b = document.getElementById("plotwrap").getBoundingClientRect();
       const line = (l,v) => `<div class="l"><span>${l}</span><span>${money(v)}</span></div>`;
       tip.innerHTML = `<div class="t">${esc(e.name)}</div>` +
-        line(`Tickets, ${state.n} × ${money(e.perPerson)}`, e.tk) + line("Hotel", st.hotel) + line("Meals", st.meals) + line("Parking", st.parking) +
-        `<div class="l sum"><span>Trip total</span><span>${money(e.trip)}</span></div>`;
+        line(`Tickets, ${state.n} × about ${money(e.perPerson)}`, e.tk) + line("Hotel", st.hotel) + line("Meals", st.meals) + line("Parking", st.parking) +
+        `<div class="l sum"><span>Estimated total</span><span>${money(e.trip)}</span></div>`;
       let lx = cx - b.left + 16, ly = cy - b.top + 14;
       if(lx > b.width - 240) lx = Math.max(0, cx - b.left - 240);
       tip.style.left = lx + "px"; tip.style.top = ly + "px"; tip.style.opacity = 1;
