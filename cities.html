@@ -53,6 +53,18 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .city .bar .tk{background:var(--ink);border-radius:2px 0 0 2px}
 .city .bar .st{background:var(--stay);border-radius:0 2px 2px 0;margin-left:2px}
 .city .split{grid-column:1/-1;font-size:13px;color:var(--ink-2);margin-top:6px}
+.side{position:sticky;top:20px}
+@media (max-width:860px){.side{position:static}}
+.deals{margin-top:36px}
+.deals h3{margin:0 0 4px;font-size:22px;font-weight:700;font-variation-settings:var(--cond);padding:0 10px}
+.deals ol{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
+.deals button{display:grid;grid-template-columns:1fr auto;gap:0 12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule);padding:10px;cursor:pointer}
+.deals button:hover{background:var(--paper)}
+.deals .dn{font-weight:600;font-size:15px;line-height:1.3;display:flex;align-items:center;gap:7px;min-width:0}
+.deals .dn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deals .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.deals .dp{font-weight:700;font-size:18px;font-variation-settings:var(--cond);font-feature-settings:"tnum"}
+.deals .dm{grid-column:1/-1;font-size:12px;color:var(--ink-3);padding-left:15px}
 .key{display:flex;gap:18px;font-size:13px;color:var(--ink-2);margin:12px 10px 0}
 .key span{display:inline-flex;align-items:center;gap:6px}
 .key b{display:inline-block;width:14px;height:8px;border-radius:2px}
@@ -116,11 +128,17 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
   </div>
 
   <div class="layout" id="app" hidden>
+    <div class="side">
     <nav aria-label="Cities ranked by typical trip cost">
       <div class="rank-head"><span>Cheapest first</span><span id="rankUnit">Typical trip</span></div>
       <div id="cities"></div>
       <div class="key"><span><b style="background:var(--ink)"></b>Tickets</span><span><b style="background:var(--stay)"></b>Hotel, meals, parking</span></div>
     </nav>
+    <section class="deals" aria-labelledby="dealsH">
+      <h3 id="dealsH">Cheapest trips in any city</h3>
+      <ol id="deals"></ol>
+    </section>
+    </div>
     <section id="detail" aria-live="polite"></section>
   </div>
 </main>
@@ -229,7 +247,19 @@ function citySummary(c){
 const cityList = () => Object.keys(COSTS).sort((a,b) => citySummary(a).trip - citySummary(b).trip);
 
 // ---------- Rendering ----------
-function render(){ renderPeople(); renderCities(); renderDetail(); }
+function render(){ renderPeople(); renderCities(); renderDeals(); renderDetail(); }
+function renderDeals(){
+  const all = EVENTS.map(e => ({ e, trip: tickets(e) + stay(e.city).total })).sort((a,b) => a.trip - b.trip).slice(0, 6);
+  const el = document.getElementById("deals"); el.innerHTML = "";
+  all.forEach(({e, trip}) => {
+    const li = document.createElement("li"), b = document.createElement("button");
+    b.innerHTML = `<span class="dn"><i class="dot" style="background:${typeColor(e.type)}"></i><span>${esc(e.name)}</span></span><span class="dp">${money(trip)}</span>
+      <span class="dm">${esc(e.city)}, ${e.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})}, ${money(tickets(e))} in tickets</span>`;
+    b.title = e.name;
+    b.onclick = () => { state.city = e.city; state.type = "all"; state.sort = "trip"; render(); document.getElementById("detail").scrollIntoView({behavior:"smooth", block:"start"}); };
+    li.appendChild(b); el.appendChild(li);
+  });
+}
 function renderPeople(){
   const el = document.getElementById("ppl"); el.innerHTML = "";
   for(let n=1; n<=CONFIG.maxTravelers; n++){
