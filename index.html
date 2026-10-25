@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Estimate the real cost of attending concerts, games and shows in major US cities.">
+  <title>Explore events | The Real Ticket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+  <div id="header"></div>
+  <main class="page">
+    <p class="eyebrow">The whole night, not just the ticket</p>
+    <h1 class="display">What will it really cost to be there?</h1>
+    <p class="intro">Choose a performer or event. We’ll add the ticket, hotel, meals and getting around so you can compare the night—not just the seat.</p>
+
+    <section class="explorer" aria-labelledby="planner-title">
+      <div class="planner">
+        <h2 id="planner-title">Plan an event trip</h2>
+        <p class="planner-note">Start anywhere. Every choice updates the estimate.</p>
+        <label class="field"><span>Performer or team</span><select id="performer"></select></label>
+        <label class="field"><span>Event</span><select id="event"></select></label>
+        <div class="field-row">
+          <label class="field"><span>Travelers</span><select id="travelers"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+          <label class="field"><span>Getting around</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option></select></label>
+        </div>
+        <div class="estimate" id="estimate" aria-live="polite"></div>
+      </div>
+
+      <aside class="map-panel" aria-labelledby="map-title">
+        <div class="map-head"><h2 id="map-title">Pick your stage</h2><p>5 sample metros</p></div>
+        <div class="map-shell">
+          <div id="eventMap" role="region" aria-label="Interactive map of sample event cities"></div>
+          <div class="map-label" id="mapLabel">Choose an event to see it on the map.</div>
+        </div>
+      </aside>
+    </section>
+
+    <section aria-labelledby="compare-title">
+      <div class="section-head"><h2 id="compare-title">Two ways to compare</h2><p>Browse by place when you’re flexible, or follow a favorite act from city to city.</p></div>
+      <div class="feature-links">
+        <a class="feature-card" href="cities.html"><span class="num">01 / Places</span><h3>Which city is kinder to your wallet?</h3><p>Rank cities by the combined price of tickets and an overnight stay.</p></a>
+        <a class="feature-card" href="artists.html"><span class="num">02 / Performers</span><h3>Where should you see your favorite artist?</h3><p>Compare the true attendance cost for the same act across its tour stops.</p></a>
+      </div>
+    </section>
+  </main>
+  <div id="footer"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="site.js?v=2"></script>
+  <script>
+    document.getElementById("header").innerHTML = siteHeader("explore");
+    document.getElementById("footer").innerHTML = siteFooter();
+    const performerSelect = document.getElementById("performer");
+    const eventSelect = document.getElementById("event");
+    const travelersSelect = document.getElementById("travelers");
+    const modeSelect = document.getElementById("travelMode");
+    let EVENTS = [];
+    let leafletMap;
+    const mapMarkers = new Map();
+
+    function option(value, label) { return `<option value="${value}">${label}</option>`; }
+    function fillPerformers() {
+      performerSelect.innerHTML = option("", "All performers and teams") + unique(EVENTS.map(e => e.performer)).map(name => option(name, name)).join("");
+    }
+    function fillEvents(preferredId) {
+      const filtered = EVENTS.filter(e => !performerSelect.value || e.performer === performerSelect.value).sort((a,b) => a.date - b.date);
+      eventSelect.innerHTML = filtered.map(e => option(e.id, `${e.name} — ${e.city}`)).join("");
+      if (preferredId && filtered.some(e => e.id === preferredId)) eventSelect.value = preferredId;
+      render();
+    }
+    function selectedEvent() { return EVENTS.find(e => e.id === eventSelect.value) || EVENTS[0]; }
+    function initMap() {
+      if (!window.L) {
+        document.getElementById("mapLabel").innerHTML = "The interactive map library did not load. The event planner still works.";
+        return;
+      }
+      leafletMap = L.map("eventMap", { center: [38.4, -96.8], zoom: 4, minZoom: 3, maxZoom: 12, scrollWheelZoom: false });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(leafletMap);
+    }
+    function render() {
+      const event = selectedEvent(); if (!event) return;
+      const n = Number(travelersSelect.value), mode = modeSelect.value, cost = tripCost(event, n, mode);
+      document.getElementById("estimate").innerHTML = `<div class="estimate-top"><span>Estimated total for ${n} ${n === 1 ? "person" : "people"}</span><strong class="estimate-total">${money(cost.total)}</strong></div>
+        <ul class="breakdown"><li><span>Tickets · ${n} × ${money(event.ticket)}</span><strong>${money(cost.tickets)}</strong></li><li><span>Hotel · ${cost.rooms} room${cost.rooms > 1 ? "s" : ""}</span><strong>${money(cost.hotel)}</strong></li><li><span>Meals</span><strong>${money(cost.meals)}</strong></li><li><span>${mode === "drive" ? "Parking" : "Round-trip transit"}</span><strong>${money(cost.localTravel)}</strong></li></ul>
+        <div class="estimate-actions"><a class="rule-link" href="artist.html?artist=${encodeURIComponent(event.performer)}">Compare this performer</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
+        <p class="data-note">Prototype estimate excludes airfare, taxes and fees. Sample resale and city-average costs.</p>`;
+      renderMap(event, cost.total);
+    }
+    function renderMap(event, total) {
+      if (!leafletMap) return;
+      const cities = unique(EVENTS.map(e => e.city));
+      cities.forEach(city => {
+        if (!mapMarkers.has(city)) {
+          const marker = L.circleMarker(CITY_COORDS[city], { radius: 8, color: "#1d4e89", weight: 3, fillColor: "#fffaf0", fillOpacity: 1 });
+          const tooltipDirection = city === "New York" ? "left" : (city === "Los Angeles" || city === "Phoenix" ? "right" : "top");
+          const tooltipOffset = tooltipDirection === "left" ? [-10, 0] : (tooltipDirection === "right" ? [10, 0] : [0, -9]);
+          marker.bindTooltip(city, { permanent: true, direction: tooltipDirection, offset: tooltipOffset, className: "city-tooltip" });
+          marker.on("click", () => {
+            const next = EVENTS.filter(e => e.city === city).sort((a,b) => a.date - b.date)[0];
+            performerSelect.value = next.performer; fillEvents(next.id);
+          });
+          marker.addTo(leafletMap); mapMarkers.set(city, marker);
+        }
+        const active = city === event.city;
+        mapMarkers.get(city).setRadius(active ? 11 : 8);
+        mapMarkers.get(city).setStyle({ color: active ? "#1e2a30" : "#1d4e89", fillColor: active ? "#e0612d" : "#fffaf0" });
+        if (active) mapMarkers.get(city).bringToFront();
+      });
+      document.getElementById("mapLabel").innerHTML = `<strong>${event.city} · ${money(total)}</strong>${event.name}<br>${dateLabel(event.date)} at ${event.venue}`;
+    }
+    performerSelect.addEventListener("change", () => fillEvents());
+    eventSelect.addEventListener("change", render);
+    travelersSelect.addEventListener("change", render);
+    modeSelect.addEventListener("change", render);
+    initMap();
+    loadEvents().then(events => { EVENTS = events; fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); }).catch(error => showLoadError(document.querySelector(".planner"), error));
+  </script>
+</body>
+</html>
