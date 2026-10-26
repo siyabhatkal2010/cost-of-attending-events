@@ -7,17 +7,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=4">
 <style>
 /* Design tokens: cream page, deep slate ink, one blue for selection.
    Category colors are reserved for event types in the chart. */
 :root{
-  color-scheme:light;
-  --cream:#f8f1e3; --paper:#fffaf0; --sand:#ece2cc; --rule:#ddd0b4;
-  --ink:#1e2a30; --ink-2:#4d5559; --ink-3:#7d7f78;
-  --select:#1d4e89; --select-wash:#e3ebf3;
-  --stay:#cbb68c;
-  --concert:#2a78d6; --sports:#e0612d; --theater:#17986b; --other:#7a5bd1;
+  color-scheme:dark;
+  --cream:#0d1114; --paper:#151b20; --sand:#252e35; --rule:#34414a;
+  --ink:#f4ecdf; --ink-2:#bcc4c7; --ink-3:#89959a;
+  --select:#78aefc; --select-wash:#192a3d;
+  --stay:#8e7954;
+  --concert:#5aa4ff; --sports:#ff8052; --theater:#38c997; --other:#ad8aff;
   --r:4px;
   --serif:"Source Serif 4",Georgia,serif; --sans:"Libre Franklin",system-ui,sans-serif;
 }
@@ -102,7 +102,7 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 #tip .sum{border-top:1px solid var(--rule);margin-top:5px;padding-top:5px;font-weight:700}
 .note{font-size:13px;color:var(--ink-3);margin-top:14px;max-width:70ch}
 .status{color:var(--ink-2)}
-.err{background:#f6dcd3;color:#6b2412;border-radius:var(--r);padding:12px 14px}
+.err{background:#3b1e1a;color:#ffc4b5;border-radius:var(--r);padding:12px 14px}
 #picker{display:none;margin-top:12px}
 #picker label{display:block;margin:8px 0}
 @media (prefers-reduced-motion:no-preference){.city .bar i{transition:width .35s ease}}
