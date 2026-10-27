@@ -164,3 +164,16 @@ button, select { cursor: pointer; }
 @media (prefers-reduced-motion: no-preference) {
   .feature-card, .artist-card { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
 }
+
+/* Ticket vs. local-cost scatterplot */
+.scatter-section { margin: 72px 0; padding: 32px; border: 1px solid var(--rule); background: var(--paper); }
+.scatter-section .section-head { margin-bottom: 10px; }
+.scatter-chart { width: 100%; overflow-x: auto; }
+.scatter-chart svg { display: block; width: 100%; min-width: 540px; height: auto; }
+.scatter-chart circle[data-point] { cursor: pointer; transition: r .12s ease; }
+.scatter-chart circle[data-point]:hover, .scatter-chart circle[data-point]:focus { stroke: #ffffff; stroke-width: 3; outline: none; }
+.scatter-caption { color: var(--ink-2); font-size: 13px; }
+.scatter-legend { display: flex; flex-wrap: wrap; gap: 10px 20px; color: var(--ink-2); font-size: 12px; }
+.scatter-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.scatter-legend i { width: 10px; height: 10px; display: inline-block; border-radius: 50%; }
+@media(max-width:640px) { .scatter-section { padding: 18px 12px; margin: 44px 0; } }
