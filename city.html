@@ -38,6 +38,17 @@
     .event-price { text-align:right; }
     .event-price strong { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
     .event-price span { color:var(--ink-3); font-size:12px; }
+    .venue-chart { margin-top:56px; padding:26px 28px 20px; border:1px solid var(--rule); border-radius:var(--radius); background:var(--paper); }
+    .venue-chart-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:end; gap:12px 24px; margin-bottom:12px; }
+    .venue-chart-head h2 { margin:0; font:650 clamp(24px,3vw,32px)/1.1 var(--serif); }
+    .venue-chart-key { display:flex; flex-wrap:wrap; gap:16px; color:var(--ink-2); font-size:13px; }
+    .venue-chart-key span { display:inline-flex; align-items:center; gap:6px; }
+    .venue-chart-key i { width:12px; height:12px; border-radius:2px; display:inline-block; }
+    #venueChart svg { display:block; width:100%; height:auto; }
+    #venueChart g.vrow { cursor:pointer; }
+    #venueChart g.vrow:hover rect.hit, #venueChart g.vrow:focus rect.hit { fill:var(--sand); }
+    #venueChart g.vrow:focus { outline:none; }
+    @media (max-width:560px) { .venue-chart { padding:18px 14px 14px; } }
     @media (max-width:900px) { .city-layout { grid-template-columns:1fr; } .venue-side { position:static; } }
     @media (max-width:560px) { .event-row { grid-template-columns:72px minmax(0,1fr); } .event-price { grid-column:2; text-align:left; } .map-frame { height:280px; } }
   </style>
@@ -52,6 +63,11 @@
       <nav class="venue-side" aria-label="Venues in this city" id="venueList"></nav>
       <section id="venueDetail" aria-live="polite"></section>
     </div>
+    <section class="venue-chart" aria-labelledby="venueChartTitle">
+      <div class="venue-chart-head"><h2 id="venueChartTitle">Average ticket by venue and event type</h2><div class="venue-chart-key" id="venueChartKey"></div></div>
+      <div id="venueChart"></div>
+      <p class="data-note">Each bar is the average of the lowest listed price per person across that venue’s events of one type. The number in brackets is how many events. Click a venue to see its map and events.</p>
+    </section>
   </main>
   <div id="footer"></div>
   <script src="site.js?v=4"></script>
@@ -87,6 +103,56 @@
       });
     }
 
+    // Grouped bar chart: one block per venue, one bar per event type held there
+    function renderVenueChart() {
+      const host = document.getElementById("venueChart");
+      const types = [...new Set(VENUES.flatMap(v => v.events.map(e => e.type)))].sort();
+      const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+      document.getElementById("venueChartKey").innerHTML = types.map(t => `<span><i style="background:${TYPE_COLOR[t] || "var(--other)"}"></i>${esc(cap(t))}</span>`).join("");
+      const blocks = VENUES.map(v => ({
+        v, bars: types.filter(t => v.events.some(e => e.type === t)).map(t => {
+          const evs = v.events.filter(e => e.type === t);
+          return { type: t, avg: avg(evs.map(e => e.ticket)), count: evs.length };
+        })
+      })).sort((a, b) => b.v.avgTicket - a.v.avgTicket);
+      const W = Math.max(300, Math.round(host.clientWidth || 900)), narrow = W < 600;
+      const L = narrow ? 0 : Math.round(W * 0.27), R = W - 96, BH = 16, GAP = 6, PAD = 12, NAME = narrow ? 24 : 0, T = 4;
+      const blockH = b => PAD * 2 + NAME + b.bars.length * BH + (b.bars.length - 1) * GAP;
+      const H = T + blocks.reduce((sum, b) => sum + blockH(b), 0) + 30;
+      const maxP = Math.max(...blocks.flatMap(b => b.bars.map(x => x.avg)));
+      const raw = maxP / (narrow ? 3 : 4), p10 = Math.pow(10, Math.floor(Math.log10(raw))), fr = raw / p10;
+      const step = (fr <= 1 ? 1 : fr <= 2 ? 2 : fr <= 2.5 ? 2.5 : fr <= 5 ? 5 : 10) * p10, top = Math.ceil(maxP / step) * step;
+      const x = val => L + val / top * (R - L);
+      let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average ticket price by venue and event type in ${esc(city)}">`;
+      for (let val = 0; val <= top; val += step) svg += `<line x1="${x(val)}" x2="${x(val)}" y1="${T}" y2="${H - 26}" stroke="#34414a" ${val ? 'stroke-dasharray="2 4"' : ""}/><text x="${x(val)}" y="${H - 8}" text-anchor="${val === 0 && narrow ? "start" : "middle"}" font-size="12" fill="#89959a">${money(val)}</text>`;
+      let y = T;
+      blocks.forEach((b, i) => {
+        const h = blockH(b), active = b.v.name === current;
+        svg += `<g class="vrow" data-i="${i}" tabindex="0" role="button" aria-label="${esc(b.v.name)}: ${b.bars.map(x => `${x.type} average ${money(x.avg)}`).join(", ")}">
+          <rect class="hit" x="0" y="${y + 1}" width="${W}" height="${h - 2}" rx="4" fill="${active ? "#192a3d" : "transparent"}"/>
+          <text x="${narrow ? 6 : 10}" y="${narrow ? y + PAD + 14 : y + h / 2 + 5}" font-size="15" font-weight="600" fill="${active ? "#78aefc" : "#f4ecdf"}">${esc(b.v.name)}</text>`;
+        b.bars.forEach((bar, j) => {
+          const by = y + PAD + NAME + j * (BH + GAP), bw = Math.max(3, x(bar.avg) - x(0));
+          svg += `<rect x="${x(0)}" y="${by}" width="${bw}" height="${BH}" rx="3" fill="${TYPE_COLOR[bar.type] || "var(--other)"}"><title>${esc(cap(bar.type))} at ${esc(b.v.name)}: avg. ${money(bar.avg)} across ${bar.count} event${bar.count === 1 ? "" : "s"}</title></rect>
+            <text x="${x(0) + bw + 8}" y="${by + BH - 3}" font-size="13" fill="#bcc4c7">${money(bar.avg)} (${bar.count})</text>`;
+        });
+        svg += `</g>`;
+        y += h;
+      });
+      host.innerHTML = svg + `</svg>`;
+      host.querySelectorAll("g.vrow").forEach(node => {
+        const pick = () => { current = blocks[Number(node.dataset.i)].v.name; selectVenue(true); };
+        node.addEventListener("click", pick);
+        node.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+      });
+    }
+
+    function selectVenue(scroll) {
+      renderList(); renderDetail(); renderVenueChart();
+      history.replaceState(null, "", `?city=${encodeURIComponent(city)}&venue=${encodeURIComponent(current)}`);
+      if (scroll) document.getElementById("venueDetail").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     function renderList() {
       const known = VENUE_GROUPS.map(g => g[0]);
       const groups = [...VENUE_GROUPS, ["", "Other venues"]].map(([key, label]) => [label,
@@ -98,9 +164,7 @@
              <span class="vm">${v.events.length} upcoming event${v.events.length === 1 ? "" : "s"}</span>
            </button>`).join("")).join("");
       document.querySelectorAll(".venue-btn").forEach(b => b.addEventListener("click", () => {
-        current = b.dataset.venue; renderList(); renderDetail();
-        history.replaceState(null, "", `?city=${encodeURIComponent(city)}&venue=${encodeURIComponent(current)}`);
-        if (innerWidth < 900) document.getElementById("venueDetail").scrollIntoView({ behavior: "smooth" });
+        current = b.dataset.venue; selectVenue(innerWidth < 900);
       }));
     }
 
@@ -143,7 +207,8 @@
       const order = VENUE_GROUPS.map(g => g[0]);
       const first = [...VENUES].sort((a, b) => ((order.indexOf(a.kind) + 99) % 99) - ((order.indexOf(b.kind) + 99) % 99) || byName(a.name, b.name))[0];
       current = VENUES.some(v => v.name === requested) ? requested : first.name;
-      renderList(); renderDetail();
+      renderList(); renderDetail(); renderVenueChart();
+      let resizeTimer; addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderVenueChart, 150); });
     }).catch(error => showLoadError(document.getElementById("cityPage"), error));
   </script>
 </body>
