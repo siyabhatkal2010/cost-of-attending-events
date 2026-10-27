@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>City venues | The Real Ticket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css?v=4">
+  <style>
+    :root { --concert:#5aa4ff; --sports:#ff8052; --theater:#38c997; --other:#ad8aff; }
+    .back { display:inline-block; margin-bottom:18px; color:var(--ink-2); font-size:14px; text-decoration:none; }
+    .back:hover { color:var(--ink); }
+    .city-layout { display:grid; grid-template-columns:minmax(0,380px) minmax(0,1fr); gap:clamp(32px,4vw,64px); align-items:start; margin-top:40px; }
+    .venue-side { position:sticky; top:22px; }
+    .group-label { margin:26px 0 6px; color:var(--ink-3); font-size:13px; font-weight:600; }
+    .group-label:first-child { margin-top:0; }
+    .venue-btn { display:grid; grid-template-columns:1fr auto; gap:2px 12px; width:100%; padding:13px 12px; border:0; border-bottom:1px solid var(--rule); background:none; text-align:left; }
+    .venue-btn:first-of-type { border-top:1px solid var(--rule); }
+    .venue-btn:hover { background:var(--paper); }
+    .venue-btn[aria-current="true"] { background:var(--blue-wash); box-shadow:inset 3px 0 0 var(--blue); }
+    .venue-btn .vn { font:600 20px/1.2 var(--serif); }
+    .venue-btn .vp { font-weight:600; font-size:16px; text-align:right; font-variant-numeric:tabular-nums; }
+    .venue-btn .vm { grid-column:1/-1; color:var(--ink-3); font-size:12px; }
+    .venue-name { margin:0; font:650 clamp(40px,5.5vw,72px)/.98 var(--serif); letter-spacing:-.025em; }
+    .venue-sub { margin:10px 0 0; color:var(--ink-2); font-size:17px; }
+    .map-frame { width:100%; height:360px; margin-top:24px; border:1px solid var(--rule); border-radius:var(--radius); background:var(--paper); display:block; }
+    .map-link { display:inline-block; margin-top:10px; font-size:13px; }
+    .venue-stats { margin:26px 0 30px; }
+    .events-head { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:10px; }
+    .events-head h2 { margin:0; font:650 30px/1.1 var(--serif); }
+    .events-head span { color:var(--ink-3); font-size:12px; }
+    .event-row { display:grid; grid-template-columns:96px minmax(0,1fr) auto; gap:18px; align-items:center; padding:14px 0; border-bottom:1px solid var(--rule); }
+    .event-row:first-of-type { border-top:1px solid var(--ink); }
+    .event-date { color:var(--ink-2); font-size:13px; line-height:1.35; }
+    .event-date b { display:block; color:var(--ink); font-size:16px; }
+    .event-name { font-weight:600; font-size:16px; line-height:1.3; }
+    .event-type { display:inline-flex; align-items:center; gap:6px; margin-top:3px; color:var(--ink-3); font-size:12px; }
+    .event-type i { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .event-price { text-align:right; }
+    .event-price strong { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
+    .event-price span { color:var(--ink-3); font-size:12px; }
+    @media (max-width:900px) { .city-layout { grid-template-columns:1fr; } .venue-side { position:static; } }
+    @media (max-width:560px) { .event-row { grid-template-columns:72px minmax(0,1fr); } .event-price { grid-column:2; text-align:left; } .map-frame { height:280px; } }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+  <main class="page" id="cityPage">
+    <a class="back" href="cities.html" id="backLink">← All cities</a>
+    <h1 class="display" id="cityName">Loading…</h1>
+    <p class="intro" id="cityIntro"></p>
+    <div class="city-layout">
+      <nav class="venue-side" aria-label="Venues in this city" id="venueList"></nav>
+      <section id="venueDetail" aria-live="polite"></section>
+    </div>
+  </main>
+  <div id="footer"></div>
+  <script src="site.js?v=4"></script>
+  <script>
+    document.getElementById("header").innerHTML = siteHeader("cities");
+    document.getElementById("footer").innerHTML = siteFooter();
+
+    // Venue types come from the data's venue_class column; unknown types fall into "Other venues"
+    const VENUE_GROUPS = [
+      ["stadium", "Stadiums"], ["arena", "Arenas"], ["concert_hall", "Concert halls"],
+      ["performing_arts", "Performing arts centers"], ["major_theater", "Theaters"]
+    ];
+    const TYPE_COLOR = { concert: "var(--concert)", sports: "var(--sports)", theater: "var(--theater)" };
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+    const avg = list => list.reduce((sum, v) => sum + v, 0) / list.length;
+    const params = new URLSearchParams(location.search);
+    let VENUES = [], city = "", current = "";
+
+    function buildVenues(events) {
+      const byVenue = new Map();
+      events.forEach(e => {
+        if (!byVenue.has(e.venue)) byVenue.set(e.venue, []);
+        byVenue.get(e.venue).push(e);
+      });
+      return [...byVenue].map(([name, evs]) => {
+        const withCoords = evs.find(e => e.lat && e.lng);
+        return {
+          name, events: evs.sort((a, b) => a.date - b.date),
+          kind: evs[0].venueClass, place: [evs[0].venueCity, evs[0].venueState].filter(Boolean).join(", "),
+          lat: withCoords ? withCoords.lat : null, lng: withCoords ? withCoords.lng : null,
+          avgTicket: avg(evs.map(e => e.ticket))
+        };
+      });
+    }
+
+    function renderList() {
+      const known = VENUE_GROUPS.map(g => g[0]);
+      const groups = [...VENUE_GROUPS, ["", "Other venues"]].map(([key, label]) => [label,
+        VENUES.filter(v => key ? v.kind === key : !known.includes(v.kind)).sort((a, b) => byName(a.name, b.name))]);
+      document.getElementById("venueList").innerHTML = groups.filter(([, list]) => list.length).map(([label, list]) =>
+        `<p class="group-label">${label}</p>` + list.map(v =>
+          `<button class="venue-btn" data-venue="${esc(v.name)}" aria-current="${v.name === current}">
+             <span class="vn">${esc(v.name)}</span><span class="vp">${money(v.avgTicket)} avg.</span>
+             <span class="vm">${v.events.length} upcoming event${v.events.length === 1 ? "" : "s"}</span>
+           </button>`).join("")).join("");
+      document.querySelectorAll(".venue-btn").forEach(b => b.addEventListener("click", () => {
+        current = b.dataset.venue; renderList(); renderDetail();
+        history.replaceState(null, "", `?city=${encodeURIComponent(city)}&venue=${encodeURIComponent(current)}`);
+        if (innerWidth < 900) document.getElementById("venueDetail").scrollIntoView({ behavior: "smooth" });
+      }));
+    }
+
+    function renderDetail() {
+      const v = VENUES.find(x => x.name === current); if (!v) return;
+      const query = v.lat ? `${v.lat},${v.lng}` : `${v.name}, ${v.place}`;
+      const mapSrc = `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed`;
+      const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.lat ? query : v.name + " " + v.place)}`;
+      const tickets = v.events.map(e => e.ticket);
+      const typeLabel = (VENUE_GROUPS.find(g => g[0] === v.kind) || [null, "Venue"])[1].replace(/s$/, "");
+      document.getElementById("venueDetail").innerHTML = `
+        <h2 class="venue-name">${esc(v.name)}</h2>
+        <p class="venue-sub">${esc(typeLabel)} in ${esc(v.place)}</p>
+        <iframe class="map-frame" title="Map of ${esc(v.name)}" src="${mapSrc}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <a class="rule-link map-link" href="${mapLink}" target="_blank" rel="noopener">Open in Google Maps</a>
+        <section class="stats venue-stats">
+          <div class="stat"><div class="label">Upcoming events</div><div class="value">${v.events.length}</div></div>
+          <div class="stat"><div class="label">Avg. ticket, from</div><div class="value">${money(avg(tickets))}</div></div>
+          <div class="stat"><div class="label">Cheapest ticket, from</div><div class="value">${money(Math.min(...tickets))}</div></div>
+        </section>
+        <div class="events-head"><h2>Upcoming events</h2><span>Price per person</span></div>
+        ${v.events.map(e => `<article class="event-row">
+          <div class="event-date"><b>${e.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</b>${e.date.toLocaleDateString("en-US", { weekday: "short" })}, ${e.date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</div>
+          <div><div class="event-name">${esc(e.name)}</div><span class="event-type"><i style="background:${TYPE_COLOR[e.type] || "var(--other)"}"></i>${esc(e.type.charAt(0).toUpperCase() + e.type.slice(1))}</span></div>
+          <div class="event-price"><strong>${money(e.ticket)}</strong><span>tickets from about</span></div>
+        </article>`).join("")}
+        <p class="data-note">Prices are the lowest resale listings on SeatData when the data was last pulled and change daily. “Avg. ticket” is the average of those starting prices across this venue’s events.</p>`;
+    }
+
+    loadEvents().then(events => {
+      const cities = unique(events.map(e => e.city));
+      city = cities.includes(params.get("city")) ? params.get("city") : cities[0];
+      const cityEvents = events.filter(e => e.city === city);
+      VENUES = buildVenues(cityEvents);
+      document.title = `${city} venues | The Real Ticket`;
+      document.getElementById("cityName").textContent = city;
+      document.getElementById("cityIntro").textContent = `${VENUES.length} venues with ${cityEvents.length} upcoming events. Pick a venue to see where it is, what’s on and what tickets cost.`;
+      document.getElementById("backLink").href = `cities.html?city=${encodeURIComponent(city)}`;
+      const requested = params.get("venue");
+      const order = VENUE_GROUPS.map(g => g[0]);
+      const first = [...VENUES].sort((a, b) => ((order.indexOf(a.kind) + 99) % 99) - ((order.indexOf(b.kind) + 99) % 99) || byName(a.name, b.name))[0];
+      current = VENUES.some(v => v.name === requested) ? requested : first.name;
+      renderList(); renderDetail();
+    }).catch(error => showLoadError(document.getElementById("cityPage"), error));
+  </script>
+</body>
+</html>
