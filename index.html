@@ -48,6 +48,22 @@
       </aside>
     </section>
 
+    <section class="scatter-section" aria-labelledby="scatter-title">
+      <div class="section-head"><div><p class="eyebrow">Cost drivers</p><h2 id="scatter-title">Ticket price vs. local costs</h2></div><p>Is the ticket or the destination driving your total? Each dot is one event. Select a dot to update the trip planner.</p></div>
+      <p id="scatterCount" class="scatter-caption" aria-live="polite">Loading events…</p>
+      <div id="costScatter" class="scatter-chart"></div>
+      <div class="scatter-legend"><span><i style="background:#78aefc"></i>New York</span><span><i style="background:#ff8052"></i>Los Angeles</span><span><i style="background:#38c997"></i>Chicago</span><span><i style="background:#ad8aff"></i>Houston</span><span><i style="background:#f0c674"></i>Phoenix</span></div>
+      <p class="data-note">Based on sampled event ticket prices and city-average hotel, meal, and transportation estimates. Costs exclude airfare, taxes and fees. This is not historical pricing data.</p>
+    </section>
+
+    <section class="calendar-section" aria-labelledby="calendar-title">
+      <div class="section-head"><div><p class="eyebrow">Find a better date</p><h2 id="calendar-title">Event affordability calendar</h2></div><p>Which dates offer the lowest estimated event-trip costs? Each colored day shows the cheapest sampled event on that date.</p></div>
+      <label class="calendar-month-label" for="calendarMonth">Month <select id="calendarMonth" aria-label="Select calendar month"></select></label>
+      <div id="calendarHeatmap" class="calendar-grid" role="group" aria-label="Event affordability by date"></div>
+      <p id="calendarDetail" class="data-note" aria-live="polite">Loading calendar…</p>
+      <p class="data-note">Sample events only; blank dates do not imply no events exist. Prices are estimates, not historical ticket prices.</p>
+    </section>
+
     <section aria-labelledby="compare-title">
       <div class="section-head"><h2 id="compare-title">Two ways to compare</h2><p>Browse by place when you’re flexible, or follow a favorite act from city to city.</p></div>
       <div class="feature-links">
@@ -59,6 +75,8 @@
   <div id="footer"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="site.js?v=3"></script>
+  <script src="cost-scatter.js"></script>
+  <script src="calendar-heatmap.js"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("explore");
     document.getElementById("footer").innerHTML = siteFooter();
@@ -101,6 +119,7 @@
         <div class="estimate-actions"><a class="rule-link" href="artist.html?artist=${encodeURIComponent(event.performer)}">Compare this performer</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
         <p class="data-note">Prototype estimate excludes airfare, taxes and fees. Sample resale and city-average costs.</p>`;
       renderMap(event, cost.total);
+      renderCostScatter(EVENTS, n, mode, event.id, chosen => { performerSelect.value = chosen.performer; fillEvents(chosen.id); });
     }
 
     function renderMap(event, total) {
@@ -247,7 +266,7 @@
     travelersSelect.addEventListener("change", render);
     modeSelect.addEventListener("change", render);
     initMap();
-    loadEvents().then(events => { EVENTS = events; fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); }).catch(error => showLoadError(document.querySelector(".planner"), error));
+    loadEvents().then(events => { EVENTS = events; fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); initCalendarHeatmap(EVENTS, chosen => { performerSelect.value = chosen.performer; fillEvents(chosen.id); }); }).catch(error => showLoadError(document.querySelector(".planner"), error));
   </script>
 </body>
 </html>
