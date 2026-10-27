@@ -138,6 +138,34 @@ button, select { cursor: pointer; }
 
 .site-footer { display: flex; justify-content: space-between; gap: 24px; padding: 26px clamp(18px, 4vw, 64px); border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 12px; }
 
+.map-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #39434b;
+  border-radius: 999px;
+  background: #151b20;
+}
+.map-toggle-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: transparent;
+  color: #c4cbd1;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.map-toggle-btn.active {
+  background: #f4ecdf;
+  color: #151b20;
+}
+.map-toggle-btn:focus-visible {
+  outline: 2px solid #78aefc;
+  outline-offset: 3px;
+}
+
 @media (max-width: 900px) {
   .explorer, .directory-head { grid-template-columns: 1fr; }
   .map-panel { position: static; }

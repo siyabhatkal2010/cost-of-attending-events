@@ -32,7 +32,15 @@
       </div>
 
       <aside class="map-panel" aria-labelledby="map-title">
-        <div class="map-head"><h2 id="map-title">Pick your stage</h2><p>5 sample metros</p></div>
+        <!-- <div class="map-head"><h2 id="map-title">Pick your stage</h2><p>5 sample metros</p></div> -->
+         <div class = "map-head">
+          <h2 id = "map-title">Pick your stage</h2><p>5 sample metros</p>
+          <div class = "map-toggle" role = "group" aria-label = "Visualization toggle">
+            <button type = "button" id = "eventViewBtn" class = "map-toggle-btn active" aria-pressed = "true">View by Events</button>
+            <button type = "button" id = "costViewBtn" class = "map-toggle-btn" aria-pressed = "false">View by Costs</button>
+          </div>
+
+         </div>
         <div class="map-shell">
           <div id="eventMap" role="region" aria-label="Interactive map of sample event cities"></div>
           <div class="map-label" id="mapLabel">Choose an event to see it on the map.</div>
@@ -60,6 +68,7 @@
     const modeSelect = document.getElementById("travelMode");
     let EVENTS = [];
     let leafletMap;
+    let mapView = "event"; // "event" for viewByEvent (default), "cost" for viewByCost (proportional cost)
     const mapMarkers = new Map();
 
     function option(value, label) { return `<option value="${value}">${label}</option>`; }
@@ -93,7 +102,20 @@
         <p class="data-note">Prototype estimate excludes airfare, taxes and fees. Sample resale and city-average costs.</p>`;
       renderMap(event, cost.total);
     }
+
     function renderMap(event, total) {
+      if (!leafletMap || !event) {
+        return;
+      }
+
+      if (mapView === "cost") {
+        renderCostMap(event, total);
+      } else {
+        renderEventMap(event, total);
+      }
+    }
+
+    function renderEventMap(event, total) {
       if (!leafletMap) return;
       const cities = unique(EVENTS.map(e => e.city));
       cities.forEach(city => {
@@ -115,6 +137,111 @@
       });
       document.getElementById("mapLabel").innerHTML = `<strong>${event.city} · ${money(total)}</strong>${event.name}<br>${dateLabel(event.date)} at ${event.venue}`;
     }
+    
+    // assign proportional city markers based on average event cost for each city
+    function renderCostMap(event, total) {
+      if (!leafletMap) return;
+      const travelers = Number(travelersSelect.value);
+      const mode = modeSelect.value;
+
+      const city_avgs = unique(EVENTS.map(e => e.city))
+        .filter(city => CITY_COORDS[city] && CITY_COSTS[city])
+        .map(city => {
+          const cityEvents = EVENTS.filter(e => e.city === city);
+          const totals = cityEvents.map(e => tripCost(e, travelers, mode).total);
+          const count = totals.length;
+          const sum = totals.reduce((a, b) => a + b, 0);
+          const avg = sum / count;
+
+          // each city will have an Object: city, # events, avg event cost
+          return {
+            city,
+            count: count,
+            average: avg
+          };
+        }).filter(c => c.count > 0); // remove cities with 0 events
+
+      if (!city_avgs.length) return;
+
+      const min = Math.min(...city_avgs.map(c => c.average));
+      const max = Math.max(...city_avgs.map(c => c.average));
+      const range = max - min;
+
+      city_avgs.forEach(city_avg => {
+        const city = city_avg.city;
+        const count = city_avg.count;
+        const average = city_avg.average;
+        // calculate what each city's average event cost (AEC) is compared to the highest AEC among all cities
+        // used for making the proportional markers
+        const relativeCost = max > 0 ? average / max : 0;
+        const radius = max > 0 ? 26 * Math.sqrt(relativeCost) : 6;
+        // 1 = the highest AEC
+        // 0 = the lowest AEC
+        const ratio = range > 0 ? (average - min) / range : 0;
+
+        // green if low, else orange if middling, else red for high
+        // colors helpful for visually comparing how cities' AECs proportionally compare to each other's
+        const color = ratio < 0.33 ? "#38f545" : 
+                      ratio < 0.67 ? "#fa9f20" : "#f71e1e";
+
+        let marker = mapMarkers.get(city);
+
+        if (!marker) {
+          marker = L.circleMarker(CITY_COORDS[city], {});
+          marker.addTo(leafletMap);
+          mapMarkers.set(city, marker);
+        }
+
+        const active = city === event.city;
+
+        marker.setRadius(active ? radius + 3 : radius);
+
+        marker.setStyle({
+          color: active ? "#f4ecdf" : "#78aefc",
+          weight: 3,
+          fillColor: color,
+          fillOpacity: 1
+        });
+
+        if (active) marker.bringToFront();
+
+        marker.bindPopup(
+          `<strong>${city}</strong><br>` +
+          `Average trip cost: ${money(average)}<br>` +
+          `${count} sample event${count === 1 ? "" : "s"}`
+        );
+      });
+
+      const selected = city_avgs.find(c => c.city === event.city);
+
+      if (selected) {
+        document.getElementById("mapLabel").innerHTML =
+          `<strong>${event.city} · Average ${money(selected.average)}</strong>` +
+          `${event.name} · ${money(total)}<br>` +
+          `${dateLabel(event.date)} at ${event.venue}`;
+      }
+    }
+
+    function setMapView(view) {
+      mapView = view;
+
+      const eventButton = document.getElementById("eventViewBtn");
+      const costButton = document.getElementById("costViewBtn");
+      const title = document.getElementById("map-title");
+
+      eventButton.classList.toggle("active", view === "event");
+      costButton.classList.toggle("active", view === "cost");
+
+      eventButton.setAttribute("aria-pressed", String(view === "event"));
+      costButton.setAttribute("aria-pressed", String(view === "cost"));
+
+      title.textContent = view === "event" ? "Pick your stage" : "Compare city costs";
+
+      render();
+    }
+
+    document.getElementById("eventViewBtn").addEventListener("click", () => setMapView("event"));
+    document.getElementById("costViewBtn").addEventListener("click", () => setMapView("cost"));
     performerSelect.addEventListener("change", () => fillEvents());
     eventSelect.addEventListener("change", render);
     travelersSelect.addEventListener("change", render);
