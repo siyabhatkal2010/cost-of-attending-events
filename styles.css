@@ -177,3 +177,15 @@ button, select { cursor: pointer; }
 .scatter-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .scatter-legend i { width: 10px; height: 10px; display: inline-block; border-radius: 50%; }
 @media(max-width:640px) { .scatter-section { padding: 18px 12px; margin: 44px 0; } }
+
+/* Event affordability calendar */
+.calendar-section { margin: 3rem 0; padding: 1.5rem; border: 1px solid rgba(160,175,190,.22); border-radius: 12px; }
+.calendar-month-label { display: flex; align-items: center; gap: .8rem; margin: 1rem 0; font-weight: 600; }
+.calendar-month-label select { padding: .5rem .75rem; background: #19232c; color: #f4ecdf; border: 1px solid #637487; border-radius: 6px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: .4rem; max-width: 680px; }
+.calendar-weekday { text-align: center; font-size: .8rem; opacity: .8; padding: .45rem 0; }
+.calendar-day { aspect-ratio: 1.25; border: 1px solid rgba(180,190,200,.2); border-radius: 6px; background: #202a32; color: #f4ecdf; font: inherit; cursor: pointer; }
+.calendar-day:not(:disabled):hover,.calendar-day:not(:disabled):focus-visible { outline: 2px solid #f4ecdf; outline-offset: 2px; }
+.calendar-day:disabled { opacity: .36; cursor: default; }
+.calendar-spacer { min-height: 1px; }
+@media (max-width: 560px) { .calendar-section { padding: .9rem; } .calendar-grid { gap: .2rem; } .calendar-day { font-size: .8rem; } }
