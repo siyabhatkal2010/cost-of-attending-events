@@ -48,6 +48,9 @@ async function loadEvents() {
       type: row.event_type || "event",
       date: new Date(`${row.event_date}T${row.event_time || "12:00:00"}`),
       venue: row.canonical_major_venue || row.venue_name,
+      venueClass: row.venue_class || "",
+      venueCity: row.venue_city || row.pilot_city,
+      venueState: row.venue_state || "",
       lat: Number(row.venue_lat),
       lng: Number(row.venue_lng),
       ticket: priceForTwo / 2

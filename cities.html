@@ -312,6 +312,7 @@ function renderDetail(){
   el.innerHTML = `
     <h2 class="c-name">${esc(c)}</h2>
     <p class="c-sum">${cityEvents.length} upcoming events. A one-night trip for ${forN()} costs about <strong>${money(Math.min(...trips))} to ${money(Math.max(...trips))}</strong>. The average ticket in ${esc(c)} is about ${money(cityEvents.reduce((a,e) => a + e.perPerson, 0) / cityEvents.length)}${state.n>1?" per person":""}.</p>
+    <p style="margin:-8px 0 24px"><a class="rule-link" href="city.html?city=${encodeURIComponent(c)}">See ${esc(c)}’s venues on a map</a></p>
     <ul class="costs">
       <li><div class="k">Hotel, avg. per night</div><div class="v">${money(k.hotel)}</div></li>
       <li><div class="k">Meal, avg. per person</div><div class="v">${money(k.meal)}</div></li>
