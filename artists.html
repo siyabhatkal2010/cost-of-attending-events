@@ -17,6 +17,8 @@
   </main>
   <div id="footer"></div>
   <script src="site.js?v=4"></script>
+  <!-- No filter bar here; filters.js only carries the current filters along on links -->
+  <script src="filters.js?v=1"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("artists"); document.getElementById("footer").innerHTML = siteFooter();
     const grid = document.getElementById("artistGrid"), search = document.getElementById("artistSearch"), touring = document.getElementById("touringOnly");

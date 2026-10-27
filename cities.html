@@ -136,6 +136,7 @@ h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
     </div>
   </header>
 
+  <div id="filters"></div>
   <p id="status" class="status">Loading data…</p>
   <div id="picker">
     <p>Your browser blocked the data files because the page was opened directly from your computer. Choose the files here, or open the page through a local server.</p>
@@ -161,6 +162,7 @@ h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="site.js?v=4"></script>
+<script src="filters.js?v=1"></script>
 <script>
 // ---------- Config (data loading, parsing and the cost model live in site.js) ----------
 const CONFIG = { maxTravelers: 4, nameMaxLength: 36 };
@@ -185,8 +187,11 @@ function init({ events, costs, missing }){
   document.getElementById("picker").style.display = "none";
   document.getElementById("app").hidden = false;
   document.getElementById("partyWrap").hidden = false;
+  initFilters({ container: document.getElementById("filters"), events: EVENTS });
   const requestedCity = new URLSearchParams(location.search).get("city");
-  state.city = cityList().includes(requestedCity) ? requestedCity : cityList()[0];
+  // Without a requested city, open the cheapest city that has events passing the filters
+  const firstMatching = cityList().find(c => EVENTS.some(e => e.city === c && !reasonsFor(e).length));
+  state.city = cityList().includes(requestedCity) ? requestedCity : (firstMatching || cityList()[0]);
   render();
 }
 
@@ -194,6 +199,8 @@ function init({ events, costs, missing }){
 const stay = city => stayCost(COSTS[city], state.n);
 const tickets = e => e.ticket * state.n;
 const typeColor = t => css(TYPE_COLOR[t] || "--other");
+// Filters compare against the same trip total shown here: tickets plus the stay, driving
+const reasonsFor = e => filterReasons(e, tickets(e) + stay(e.city).total);
 const forN = () => state.n === 1 ? "1 person" : state.n + " people";
 function citySummary(c){
   const evs = EVENTS.filter(e => e.city === c), st = stay(c), m = evs.reduce((a,e) => a + tickets(e), 0) / evs.length;
@@ -202,14 +209,20 @@ function citySummary(c){
 const cityList = () => Object.keys(COSTS).sort((a,b) => citySummary(a).trip - citySummary(b).trip);
 
 // ---------- Rendering ----------
-function render(){ renderPeople(); renderCities(); renderDeals(); renderDetail(); }
+function render(){
+  renderPeople(); renderCities(); renderDeals(); renderDetail();
+  setFilterSummary(EVENTS.filter(e => !reasonsFor(e).length).length, EVENTS.length);
+}
+onFiltersChange(() => { if(EVENTS.length) render(); });
 function renderDeals(){
   const all = EVENTS.map(e => ({ e, trip: tickets(e) + stay(e.city).total })).sort((a,b) => a.trip - b.trip).slice(0, 6);
   const el = document.getElementById("deals"); el.innerHTML = "";
   all.forEach(({e, trip}) => {
-    const li = document.createElement("li"), b = document.createElement("button");
+    const li = document.createElement("li"), b = document.createElement("button"), reasons = reasonsFor(e);
+    if(reasons.length) b.className = "is-muted";
     b.innerHTML = `<span class="dn"><i class="dot" style="background:${typeColor(e.type)}"></i><span>${esc(e.name)}</span></span><span class="dp">${money(trip)}</span>
-      <span class="dm">${esc(e.city)}, ${e.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})}, tickets from about ${money(e.ticket)}</span>`;
+      <span class="dm">${esc(e.city)}, ${e.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})}, tickets from about ${money(e.ticket)}</span>` +
+      (reasons.length ? filterTag(reasonText(reasons)) : "");
     b.title = e.name;
     b.onclick = () => { state.city = e.city; state.type = "all"; state.sort = "trip"; render(); document.getElementById("detail").scrollIntoView({behavior:"smooth", block:"start"}); };
     li.appendChild(b); el.appendChild(li);
@@ -229,10 +242,13 @@ function renderCities(){
   const el = document.getElementById("cities"); el.innerHTML = "";
   list.forEach(c => {
     const s = citySummary(c), b = document.createElement("button");
-    b.className = "city"; b.setAttribute("aria-current", c===state.city);
+    const reasons = EVENTS.filter(e => e.city === c).map(reasonsFor), matching = reasons.filter(r => !r.length).length;
+    const muted = filtersActive() && matching === 0;
+    b.className = "city" + (muted ? " is-muted" : ""); b.setAttribute("aria-current", c===state.city);
     b.innerHTML = `<span class="nm">${esc(c)}</span><span class="tot">${money(s.trip)}</span>
       <span class="bar" aria-hidden="true"><i class="tk" style="width:${s.medTickets/max*100}%"></i><i class="st" style="width:calc(${s.stay/max*100}% - 2px)"></i></span>
-      <span class="split">About ${money(s.medTickets)} in tickets and ${money(s.stay)} for the stay</span>`;
+      <span class="split">About ${money(s.medTickets)} in tickets and ${money(s.stay)} for the stay${filtersActive() && matching ? `. ${matching} of ${reasons.length} events match your filters` : ""}</span>` +
+      (muted ? filterTag(summarizeReasons(reasons)) : "");
     b.onclick = () => { state.city = c; state.type = "all"; render(); if(innerWidth < 860) document.getElementById("detail").scrollIntoView({behavior:"smooth"}); };
     el.appendChild(b);
   });
@@ -241,7 +257,7 @@ function renderDetail(){
   const c = state.city, k = COSTS[c], st = stay(c);
   const cityEvents = EVENTS.filter(e => e.city === c);
   let evs = cityEvents.filter(e => state.type === "all" || e.type === state.type)
-    .map(e => ({ ...e, tk: tickets(e), trip: tickets(e) + st.total }));
+    .map(e => ({ ...e, tk: tickets(e), trip: tickets(e) + st.total, reasons: reasonsFor(e) }));
   evs.sort((a,b) => state.sort === "date" ? a.date - b.date : a.trip - b.trip);
   const trips = cityEvents.map(e => tickets(e) + st.total);
   const cheapest = cityEvents.reduce((a,b) => tickets(a) <= tickets(b) ? a : b);
@@ -249,7 +265,7 @@ function renderDetail(){
   const el = document.getElementById("detail");
   el.innerHTML = `
     <h2 class="c-name">${esc(c)}</h2>
-    <p class="c-sum">${cityEvents.length} upcoming events. A one-night trip for ${forN()} costs about <strong>${money(Math.min(...trips))} to ${money(Math.max(...trips))}</strong>. The average ticket in ${esc(c)} is about ${money(cityEvents.reduce((a,e) => a + e.ticket, 0) / cityEvents.length)}${state.n>1?" per person":""}.</p>
+    <p class="c-sum">${cityEvents.length} upcoming events. A one-night trip for ${forN()} costs about <strong>${money(Math.min(...trips))} to ${money(Math.max(...trips))}</strong>. The average ticket in ${esc(c)} is about ${money(cityEvents.reduce((a,e) => a + e.ticket, 0) / cityEvents.length)}${state.n>1?" per person":""}.${filtersActive() ? ` <strong>${cityEvents.filter(e => !reasonsFor(e).length).length} of ${cityEvents.length}</strong> events here match your filters; the rest are grayed out.` : ""}</p>
     <ul class="costs">
       <li><div class="k">Hotel, avg. per night</div><div class="v">${money(k.hotel)}</div></li>
       <li><div class="k">Meal, avg. per person</div><div class="v">${money(k.meal)}</div></li>
@@ -296,22 +312,25 @@ function drawPlot(evs, st){
   }
   if(!evs.length){ mk("text",{x:L,y:30,"font-size":15,fill:ink2}).textContent = "No events of this type in this city yet."; return; }
   evs.forEach((e,i) => {
-    const y0 = T + i*RH, col = typeColor(e.type), g = mk("g",{class:"row"});
+    const y0 = T + i*RH, g = mk("g",{class:"row"});
+    // Events outside the filters stay in the chart, gray and faded, with the reason in front of the date
+    const out = e.reasons.length > 0, col = out ? ink3 : typeColor(e.type), fade = out ? .4 : 1;
     const ty = narrow ? y0 + 17 : y0 + RH/2 - 3, sy = ty + 16, y = narrow ? y0 + 46 : y0 + RH/2;
     mk("rect",{class:"hit",x:0,y:y0+2,width:W,height:RH-4,rx:3,fill:"transparent"},g);
-    mk("text",{x:narrow?0:6,y:ty,"font-size":15,"font-weight":600,fill:ink,"font-family":"Libre Franklin"},g).textContent = clip(e.name);
-    mk("text",{x:narrow?0:6,y:narrow?ty+15:sy,"font-size":12,fill:ink3,"font-family":"Libre Franklin"},g).textContent = clip(fmtDate(e.date) + ", " + e.venue);
+    mk("text",{x:narrow?0:6,y:ty,"font-size":15,"font-weight":600,fill:ink,opacity:fade,"font-family":"Libre Franklin"},g).textContent = clip(e.name);
+    mk("text",{x:narrow?0:6,y:narrow?ty+15:sy,"font-size":12,fill:out?ink2:ink3,"font-family":"Libre Franklin"},g).textContent = clip((out ? reasonText(e.reasons) + " · " : "") + fmtDate(e.date) + ", " + e.venue);
     if(narrow) mk("line",{x1:L,x2:R,y1:y,y2:y,stroke:rule,"stroke-width":0},g);
-    mk("line",{x1:x(e.tk),x2:x(e.trip),y1:y,y2:y,stroke:col,"stroke-width":3,"stroke-opacity":.35,"stroke-linecap":"round"},g);
-    mk("circle",{cx:x(e.tk),cy:y,r:6,fill:cream,stroke:col,"stroke-width":2.5},g);
-    mk("circle",{cx:x(e.trip),cy:y,r:7,fill:col,stroke:cream,"stroke-width":2},g);
-    mk("text",{x:x(e.trip)+12,y:y+5,"font-size":14,"font-weight":600,fill:ink,"font-family":"Libre Franklin"},g).textContent = money(e.trip);
+    mk("line",{x1:x(e.tk),x2:x(e.trip),y1:y,y2:y,stroke:col,"stroke-width":3,"stroke-opacity":.35*fade,"stroke-linecap":"round"},g);
+    mk("circle",{cx:x(e.tk),cy:y,r:6,fill:cream,stroke:col,"stroke-width":2.5,opacity:fade},g);
+    mk("circle",{cx:x(e.trip),cy:y,r:7,fill:col,stroke:cream,"stroke-width":2,opacity:fade},g);
+    mk("text",{x:x(e.trip)+12,y:y+5,"font-size":14,"font-weight":600,fill:ink,opacity:fade,"font-family":"Libre Franklin"},g).textContent = money(e.trip);
     const show = (cx, cy) => {
       const b = document.getElementById("plotwrap").getBoundingClientRect();
       const line = (l,v) => `<div class="l"><span>${l}</span><span>${money(v)}</span></div>`;
       tip.innerHTML = `<div class="t">${esc(e.name)}</div>` +
         line(`Tickets, ${state.n} × about ${money(e.ticket)}`, e.tk) + line("Hotel", st.hotel) + line("Meals", st.meals) + line("Parking", st.localTravel) +
-        `<div class="l sum"><span>Estimated total</span><span>${money(e.trip)}</span></div>`;
+        `<div class="l sum"><span>Estimated total</span><span>${money(e.trip)}</span></div>` +
+        (out ? `<div class="l"><span>Outside your filters</span><span>${esc(reasonText(e.reasons))}</span></div>` : "");
       let lx = cx - b.left + 16, ly = cy - b.top + 14;
       if(lx > b.width - 240) lx = Math.max(0, cx - b.left - 240);
       tip.style.left = lx + "px"; tip.style.top = ly + "px"; tip.style.opacity = 1;

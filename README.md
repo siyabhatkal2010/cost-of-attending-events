@@ -34,3 +34,10 @@ The map on the Explore page uses the Google Maps JavaScript API when a key is co
 A browser API key is always visible to anyone who opens the page (it is in the network requests), so keeping it out of git is not enough on its own. **The referrer restriction is what stops other sites from using your key.** On a static deployment you still have to publish a `config.js` with the key; the restriction is what keeps that safe.
 
 Without `config.js`, the browser logs one 404 for it; the page works normally.
+
+## Filters
+
+`filters.js` renders one shared filter bar (home city, max trip budget, max distance) on the Explore, Cities and Artist pages. Filters are stored in the URL (`?home=Chicago&budget=400&maxmi=250`), so a filtered link can be shared, and in `localStorage` as a convenience; the URL wins. Items that fail the filters stay visible but grayed out and labeled.
+
+- Budget is compared with the trip total the page shows for its current traveler count (tickets, hotel, meals, parking or transit). It does not include getting to the city (airfare or fuel), which isn't modeled yet.
+- Distance is straight-line (haversine) miles from the home city's center to the venue, not driving distance. The four events without venue coordinates use their city's center.

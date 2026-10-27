@@ -13,16 +13,18 @@
       <div><p class="eyebrow">Artist cost guide</p><h1 class="display" id="artistName">Loading…</h1><p class="intro" id="artistIntro">Comparing tickets and a one-night stay across available cities.</p></div>
       <label class="artist-picker field"><span>Choose another performer</span><select id="artistPicker"></select></label>
     </div>
+    <div id="filters"></div>
     <section class="stats" id="artistStats"></section>
     <section aria-labelledby="comparisonTitle">
       <div class="compare-head"><h2 id="comparisonTitle">Cost by city</h2><div class="field-row"><label class="field"><span>Travelers</span><select id="travelers"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label><label class="field"><span>Getting around</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option></select></label></div></div>
       <div class="city-comparison" id="cityComparison" aria-live="polite"></div>
-      <p class="data-note">Each city uses the lowest-priced sampled event for this performer. Estimates include one hotel night, one inexpensive meal per traveler and either parking or round-trip transit.</p>
+      <p class="data-note">Each city uses the lowest-priced sampled event for this performer. Estimates include one hotel night, one inexpensive meal per traveler and either parking or round-trip transit. Stops grayed out by your filters are left out of Best-value stop and Potential savings.</p>
     </section>
   </main>
   <div id="footer"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="site.js?v=4"></script>
+  <script src="filters.js?v=1"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("artists"); document.getElementById("footer").innerHTML = siteFooter();
     const picker = document.getElementById("artistPicker"), comparison = document.getElementById("cityComparison");
@@ -31,19 +33,23 @@
       const n = Number(document.getElementById("travelers").value), mode = document.getElementById("travelMode").value;
       const artistEvents = EVENTS.filter(e => e.performer === currentArtist);
       const cheapestByCity = unique(artistEvents.map(e => e.city)).map(city => artistEvents.filter(e => e.city === city).sort((a,b) => a.ticket - b.ticket)[0]);
-      const rows = cheapestByCity.map(event => ({ event, cost: tripCost(event, COSTS, n, mode) })).sort((a,b) => a.cost.total - b.cost.total);
+      const rows = cheapestByCity.map(event => { const cost = tripCost(event, COSTS, n, mode); return { event, cost, reasons: filterReasons(event, cost.total) }; }).sort((a,b) => a.cost.total - b.cost.total);
+      const matching = rows.filter(row => !row.reasons.length), best = matching[0];
       const max = Math.max(...rows.map(row => row.cost.total));
       document.getElementById("artistName").textContent = currentArtist;
       document.title = `${currentArtist} cost guide | The Real Ticket`;
       document.getElementById("artistIntro").textContent = rows.length > 1 ? `Where is the best-value city to see ${currentArtist}? Compare the full price of the night.` : `A first look at the full cost of seeing ${currentArtist} in the available sample city.`;
-      const totals = rows.map(row => row.cost.total);
-      document.getElementById("artistStats").innerHTML = `<div class="stat"><div class="label">Cities in sample</div><div class="value">${rows.length}</div></div><div class="stat"><div class="label">Best-value stop</div><div class="value">${rows[0].event.city}</div></div><div class="stat"><div class="label">Potential savings</div><div class="value">${money(Math.max(...totals) - Math.min(...totals))}</div></div>`;
-      comparison.innerHTML = rows.map(({event,cost}, index) => `<article class="compare-row"><div><p class="eyebrow">${index === 0 ? "Best value" : `Stop ${index + 1}`}</p><h3>${event.city}</h3><p class="event-meta">${dateLabel(event.date)} · ${event.venue}</p></div><div><div class="bar-track" aria-label="${money(cost.tickets)} tickets and ${money(cost.total-cost.tickets)} local costs"><i class="bar-ticket" style="width:${cost.tickets/max*100}%"></i><i class="bar-stay" style="left:${cost.tickets/max*100}%;width:${(cost.total-cost.tickets)/max*100}%"></i></div><div class="bar-legend"><span><i style="background:var(--blue)"></i>Tickets ${money(cost.tickets)}</span><span><i style="background:var(--orange)"></i>Stay + local ${money(cost.total-cost.tickets)}</span></div></div><div class="price-stack"><strong>${money(cost.total)}</strong><span>estimated for ${n} ${n === 1 ? "person" : "people"}</span></div></article>`).join("");
+      // Best value and savings only count stops that pass the filters
+      const totals = matching.map(row => row.cost.total), within = filtersActive() ? " (matching filters)" : "";
+      document.getElementById("artistStats").innerHTML = `<div class="stat"><div class="label">Cities in sample</div><div class="value">${rows.length}</div></div><div class="stat"><div class="label">Best-value stop${within}</div><div class="value">${best ? best.event.city : "None match"}</div></div><div class="stat"><div class="label">Potential savings${within}</div><div class="value">${totals.length ? money(Math.max(...totals) - Math.min(...totals)) : "—"}</div></div>`;
+      setFilterSummary(matching.length, rows.length, rows.length === 1 ? "tour stop" : "tour stops");
+      comparison.innerHTML = rows.map(({event,cost,reasons}, index) => `<article class="compare-row${reasons.length ? " is-muted" : ""}"><div><p class="eyebrow">${rows[index] === best ? "Best value" : `Stop ${index + 1}`}</p><h3>${event.city}</h3><p class="event-meta">${dateLabel(event.date)} · ${event.venue}</p></div><div><div class="bar-track" aria-label="${money(cost.tickets)} tickets and ${money(cost.total-cost.tickets)} local costs"><i class="bar-ticket" style="width:${cost.tickets/max*100}%"></i><i class="bar-stay" style="left:${cost.tickets/max*100}%;width:${(cost.total-cost.tickets)/max*100}%"></i></div><div class="bar-legend"><span><i style="background:var(--blue)"></i>Tickets ${money(cost.tickets)}</span><span><i style="background:var(--orange)"></i>Stay + local ${money(cost.total-cost.tickets)}</span></div></div><div class="price-stack"><strong>${money(cost.total)}</strong><span>estimated for ${n} ${n === 1 ? "person" : "people"}</span></div>${reasons.length ? filterTag(reasonText(reasons)) : ""}</article>`).join("");
     }
-    picker.addEventListener("change", () => { location.search = `?artist=${encodeURIComponent(picker.value)}`; });
+    picker.addEventListener("change", () => { location.href = withFilterParams(`artist.html?artist=${encodeURIComponent(picker.value)}`); });
+    onFiltersChange(() => { if (EVENTS.length) render(); });
     document.getElementById("travelers").addEventListener("change", render); document.getElementById("travelMode").addEventListener("change", render);
     loadTripData().then(data => {
-      EVENTS = data.events; COSTS = data.costs; const performers = unique(EVENTS.map(e => e.performer));
+      EVENTS = data.events; COSTS = data.costs; initFilters({ container: document.getElementById("filters"), events: EVENTS }); const performers = unique(EVENTS.map(e => e.performer));
       const requested = new URLSearchParams(location.search).get("artist"); currentArtist = performers.includes(requested) ? requested : (performers.includes("Olivia Rodrigo") ? "Olivia Rodrigo" : performers[0]);
       picker.innerHTML = performers.map(name => `<option${name === currentArtist ? " selected" : ""}>${name}</option>`).join(""); render();
     }).catch(error => showLoadError(document.getElementById("artistPage"), error));

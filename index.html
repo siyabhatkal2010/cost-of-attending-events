@@ -17,6 +17,7 @@
     <p class="eyebrow">The whole night, not just the ticket</p>
     <h1 class="display">What will it really cost to be there?</h1>
     <p class="intro">Choose a performer or event. We’ll add the ticket, hotel, meals and getting around so you can compare the night—not just the seat.</p>
+    <div id="filters"></div>
 
     <section class="explorer" aria-labelledby="planner-title">
       <div class="planner">
@@ -38,7 +39,7 @@
           <p class="map-notice" id="mapNotice" role="status" hidden></p>
           <div class="map-label" id="mapLabel">Choose an event to see it on the map.</div>
         </div>
-        <div class="map-legend" aria-label="Map legend"><span>Cheapest trip in each city, compared with the others:</span><span><i class="level-low"></i>Lower</span><span><i class="level-mid"></i>Middle</span><span><i class="level-high"></i>Higher</span></div>
+        <div class="map-legend" aria-label="Map legend"><span>Cheapest trip in each city, compared with the others:</span><span><i class="level-low"></i>Lower</span><span><i class="level-mid"></i>Middle</span><span><i class="level-high"></i>Higher</span><span id="legendOff" hidden><i class="level-off"></i>No event matches your filters</span></div>
       </aside>
     </section>
 
@@ -57,6 +58,7 @@
   <!-- Optional: copy config.example.js to config.js and add a Google Maps key. Without it the Leaflet map is used. -->
   <script src="config.js"></script>
   <script src="map-view.js?v=1"></script>
+  <script src="filters.js?v=1"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("explore");
     document.getElementById("footer").innerHTML = siteFooter();
@@ -70,14 +72,21 @@
     function fillPerformers() {
       performerSelect.innerHTML = option("", "All performers and teams") + unique(EVENTS.map(e => e.performer)).map(name => option(name, name)).join("");
     }
+    function travelChoice() { return { n: Number(travelersSelect.value), mode: modeSelect.value }; }
+    function reasonsFor(event) { const { n, mode } = travelChoice(); return filterReasons(event, tripCost(event, COSTS, n, mode).total); }
+    // <option> can't be styled reliably, so events outside the filters get a text suffix instead
     function fillEvents(preferredId) {
       const filtered = EVENTS.filter(e => !performerSelect.value || e.performer === performerSelect.value).sort((a,b) => a.date - b.date);
-      eventSelect.innerHTML = filtered.map(e => option(e.id, `${e.name} — ${e.city}`)).join("");
+      eventSelect.innerHTML = filtered.map(e => { const reasons = reasonsFor(e); return option(e.id, `${e.name} — ${e.city}${reasons.length ? ` (unavailable: ${reasons.join(", ").toLowerCase()})` : ""}`); }).join("");
       if (preferredId && filtered.some(e => e.id === preferredId)) eventSelect.value = preferredId;
       render();
     }
     function selectedEvent() { return EVENTS.find(e => e.id === eventSelect.value) || EVENTS[0]; }
-    function nextEventIn(city) { return EVENTS.filter(e => e.city === city).sort((a,b) => a.date - b.date)[0]; }
+    // The city's next event, preferring one that passes the filters
+    function nextEventIn(city) {
+      const upcoming = EVENTS.filter(e => e.city === city).sort((a,b) => a.date - b.date);
+      return upcoming.find(e => !reasonsFor(e).length) || upcoming[0];
+    }
     const mapView = createMapView(document.getElementById("eventMap"), {
       onCityClick: city => { const next = nextEventIn(city); performerSelect.value = next.performer; fillEvents(next.id); },
       onNotice: message => { const notice = document.getElementById("mapNotice"); notice.textContent = message; notice.hidden = !message; }
@@ -89,13 +98,17 @@
         <ul class="breakdown"><li><span>Tickets · ${n} × ${money(event.ticket)}</span><strong>${money(cost.tickets)}</strong></li><li><span>Hotel · ${cost.rooms} room${cost.rooms > 1 ? "s" : ""}</span><strong>${money(cost.hotel)}</strong></li><li><span>Meals</span><strong>${money(cost.meals)}</strong></li><li><span>${mode === "drive" ? "Parking" : "Round-trip transit"}</span><strong>${money(cost.localTravel)}</strong></li></ul>
         <div class="estimate-actions"><a class="rule-link" href="artist.html?artist=${encodeURIComponent(event.performer)}">Compare this performer</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
         <p class="data-note">Prototype estimate excludes airfare, taxes and fees. Sample resale and city-average costs.</p>`;
+      const reasons = filterReasons(event, cost.total);
+      if (reasons.length) document.querySelector(".estimate-top").insertAdjacentHTML("beforebegin", `<p class="filter-notice">This event is outside your filters: ${esc(reasons.join(", ").toLowerCase())}.</p>`);
+      setFilterSummary(EVENTS.filter(e => !reasonsFor(e).length).length, EVENTS.length);
       renderMap(event, cost.total);
     }
-    // Each city's cheapest trip for the current travelers and travel mode
+    // Each city's cheapest trip for the current travelers and travel mode, among events that pass the filters when any do
     function cityMapData(n, mode) {
       return unique(EVENTS.map(e => e.city)).filter(city => CENTERS[city]).map(city => {
-        const best = EVENTS.filter(e => e.city === city).map(event => ({ event, cost: tripCost(event, COSTS, n, mode) })).sort((a,b) => a.cost.total - b.cost.total)[0];
-        return { city, center: CENTERS[city], best, passes: true, reason: "" };
+        const trips = EVENTS.filter(e => e.city === city).map(event => { const cost = tripCost(event, COSTS, n, mode); return { event, cost, reasons: filterReasons(event, cost.total) }; }).sort((a,b) => a.cost.total - b.cost.total);
+        const passing = trips.filter(trip => !trip.reasons.length);
+        return { city, center: CENTERS[city], best: passing[0] || trips[0], passes: passing.length > 0, reason: passing.length ? "" : summarizeReasons(trips.map(trip => trip.reasons)) };
       });
     }
     function renderMap(event, total) {
@@ -103,13 +116,16 @@
       const unlocated = unique(EVENTS.map(e => e.city)).filter(city => !CENTERS[city]);
       document.getElementById("mapLabel").innerHTML = `<strong>${event.city} · ${money(total)}</strong>${event.name}<br>${dateLabel(event.date)} at ${event.venue}` +
         unlocated.map(city => `<br><em>${esc(cityCenterError(city))}</em>`).join("");
-      mapView.update(cityMapData(n, mode), { city: event.city, travelers: n, travelMode: mode }, { homeCenter: null, maxMiles: null });
+      document.getElementById("legendOff").hidden = !filtersActive();
+      mapView.update(cityMapData(n, mode), { city: event.city, travelers: n, travelMode: mode }, { homeCenter: homeCenter(), maxMiles: distanceFilterOn() ? getFilters().maxMiles : null });
     }
     performerSelect.addEventListener("change", () => fillEvents());
     eventSelect.addEventListener("change", render);
-    travelersSelect.addEventListener("change", render);
-    modeSelect.addEventListener("change", render);
-    loadTripData().then(data => { EVENTS = data.events; COSTS = data.costs; CENTERS = cityCenters(EVENTS); fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); }).catch(error => showLoadError(document.querySelector(".planner"), error));
+    // Traveler count and travel mode change trip totals, so the budget suffixes need rebuilding too
+    travelersSelect.addEventListener("change", () => fillEvents(eventSelect.value));
+    modeSelect.addEventListener("change", () => fillEvents(eventSelect.value));
+    onFiltersChange(() => fillEvents(eventSelect.value));
+    loadTripData().then(data => { EVENTS = data.events; COSTS = data.costs; CENTERS = cityCenters(EVENTS); initFilters({ container: document.getElementById("filters"), events: EVENTS }); fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); }).catch(error => showLoadError(document.querySelector(".planner"), error));
   </script>
 </body>
 </html>
