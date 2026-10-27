@@ -87,6 +87,48 @@ button, select { cursor: pointer; }
 .leaflet-tooltip-top.city-tooltip::before { border-top-color: var(--ink); }
 .map-label { position: absolute; z-index: 500; left: 18px; bottom: 28px; max-width: calc(100% - 36px); padding: 12px 14px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); font-size: 13px; box-shadow: 5px 5px 0 rgba(0,0,0,.35); pointer-events: none; }
 .map-label strong { display: block; font: 650 21px/1.2 var(--serif); }
+.map-notice { position: absolute; z-index: 500; top: 12px; right: 12px; max-width: min(340px, calc(100% - 80px)); margin: 0; padding: 7px 10px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper); color: var(--ink-2); font-size: 12px; }
+.map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-top: 10px; color: var(--ink-2); font-size: 12px; }
+.map-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.map-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--pin); }
+
+/* City price pins: the 16px box is centered on the city; the label sits beside it. Shared by the Google and Leaflet maps. */
+.price-pin { --pin: var(--blue); }
+.level-low { --pin: var(--green); }
+.level-mid { --pin: var(--blue); }
+.level-high { --pin: var(--orange); }
+.level-off { --pin: var(--ink-3); }
+.price-pin { position: relative; width: 16px; height: 16px; cursor: pointer; }
+.price-pin-dot { position: absolute; inset: 1px; border: 2px solid var(--cream); border-radius: 50%; background: var(--pin); box-shadow: 0 0 0 1px var(--pin); }
+.price-pin.is-selected .price-pin-dot { inset: -3px; box-shadow: 0 0 0 3px var(--ink); }
+.price-pin-label { position: absolute; top: 50%; left: calc(100% + 7px); transform: translateY(-50%); padding: 3px 7px; border: 1px solid var(--pin); border-radius: 3px; background: var(--paper); color: var(--ink); font: 600 11px/1.25 var(--sans); white-space: nowrap; box-shadow: 3px 3px 0 rgba(0,0,0,.35); }
+.price-pin.label-left .price-pin-label { right: calc(100% + 7px); left: auto; }
+.price-pin.label-top .price-pin-label, .price-pin.label-bottom .price-pin-label { left: 50%; transform: translateX(-50%); }
+.price-pin.label-top .price-pin-label { top: auto; bottom: calc(100% + 7px); }
+.price-pin.label-bottom .price-pin-label { top: calc(100% + 7px); }
+.price-pin-city { color: var(--ink-2); }
+.price-pin-label strong { font-size: 13px; }
+.price-pin-note { display: block; color: var(--ink-3); font-size: 10px; font-weight: 600; }
+.price-pin.is-selected .price-pin-label { border-color: var(--ink); }
+.price-pin.is-muted .price-pin-label { border-style: dashed; color: var(--ink-3); }
+.price-pin.is-muted .price-pin-city { color: var(--ink-3); }
+.price-pin-icon { background: none; border: 0; }
+.price-pin-google { transform: translateY(50%); }
+
+.map-info-body { min-width: 220px; max-width: 280px; color: var(--ink); font: 13px/1.45 var(--sans); }
+.map-info-body p { margin: 0 0 6px; }
+.map-info-city { font: 650 18px/1.2 var(--serif); }
+.map-info-event { color: var(--ink-2); }
+.map-info-event strong { color: var(--ink); }
+.map-info-body .breakdown { margin: 6px 0 0; }
+.map-info-body .breakdown li { padding: 4px 0; font-size: 12px; }
+.map-info-body .breakdown li:last-child { border-bottom: 0; font-weight: 700; }
+.leaflet-tooltip.map-info { padding: 10px 12px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); box-shadow: 5px 5px 0 rgba(0,0,0,.35); white-space: normal; }
+.leaflet-tooltip-left.map-info::before { border-left-color: var(--ink); }
+.leaflet-tooltip-right.map-info::before { border-right-color: var(--ink); }
+.gm-style .gm-style-iw-c { padding: 12px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); box-shadow: 5px 5px 0 rgba(0,0,0,.35); }
+.gm-style .gm-style-iw-d { overflow: auto; }
+.gm-style .gm-style-iw-tc::after { background: var(--paper); }
 
 .section-head { display: flex; justify-content: space-between; gap: 28px; align-items: end; margin: 70px 0 20px; padding-top: 22px; border-top: 1px solid var(--ink); }
 .section-head h2 { margin: 0; font: 650 clamp(30px, 4vw, 48px)/1 var(--serif); }

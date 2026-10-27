@@ -34,9 +34,11 @@
       <aside class="map-panel" aria-labelledby="map-title">
         <div class="map-head"><h2 id="map-title">Pick your stage</h2><p>5 sample metros</p></div>
         <div class="map-shell">
-          <div id="eventMap" role="region" aria-label="Interactive map of sample event cities"></div>
+          <div id="eventMap" role="region" aria-label="Interactive map of sample event cities. Each marker shows the city's cheapest trip; select one to choose its next event."></div>
+          <p class="map-notice" id="mapNotice" role="status" hidden></p>
           <div class="map-label" id="mapLabel">Choose an event to see it on the map.</div>
         </div>
+        <div class="map-legend" aria-label="Map legend"><span>Cheapest trip in each city, compared with the others:</span><span><i class="level-low"></i>Lower</span><span><i class="level-mid"></i>Middle</span><span><i class="level-high"></i>Higher</span></div>
       </aside>
     </section>
 
@@ -52,6 +54,9 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="site.js?v=4"></script>
+  <!-- Optional: copy config.example.js to config.js and add a Google Maps key. Without it the Leaflet map is used. -->
+  <script src="config.js"></script>
+  <script src="map-view.js?v=1"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("explore");
     document.getElementById("footer").innerHTML = siteFooter();
@@ -60,8 +65,6 @@
     const travelersSelect = document.getElementById("travelers");
     const modeSelect = document.getElementById("travelMode");
     let EVENTS = [], COSTS = {}, CENTERS = {};
-    let leafletMap;
-    const mapMarkers = new Map();
 
     function option(value, label) { return `<option value="${value}">${label}</option>`; }
     function fillPerformers() {
@@ -74,17 +77,11 @@
       render();
     }
     function selectedEvent() { return EVENTS.find(e => e.id === eventSelect.value) || EVENTS[0]; }
-    function initMap() {
-      if (!window.L) {
-        document.getElementById("mapLabel").innerHTML = "The interactive map library did not load. The event planner still works.";
-        return;
-      }
-      leafletMap = L.map("eventMap", { center: [38.4, -96.8], zoom: 4, minZoom: 3, maxZoom: 12, scrollWheelZoom: false });
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }).addTo(leafletMap);
-    }
+    function nextEventIn(city) { return EVENTS.filter(e => e.city === city).sort((a,b) => a.date - b.date)[0]; }
+    const mapView = createMapView(document.getElementById("eventMap"), {
+      onCityClick: city => { const next = nextEventIn(city); performerSelect.value = next.performer; fillEvents(next.id); },
+      onNotice: message => { const notice = document.getElementById("mapNotice"); notice.textContent = message; notice.hidden = !message; }
+    });
     function render() {
       const event = selectedEvent(); if (!event) return;
       const n = Number(travelersSelect.value), mode = modeSelect.value, cost = tripCost(event, COSTS, n, mode);
@@ -94,35 +91,24 @@
         <p class="data-note">Prototype estimate excludes airfare, taxes and fees. Sample resale and city-average costs.</p>`;
       renderMap(event, cost.total);
     }
-    function renderMap(event, total) {
-      if (!leafletMap) return;
-      const cities = unique(EVENTS.map(e => e.city));
-      const unlocated = cities.find(city => !CENTERS[city]);
-      if (unlocated) { document.getElementById("mapLabel").textContent = `Map unavailable. ${cityCenterError(unlocated)}`; return; }
-      cities.forEach(city => {
-        if (!mapMarkers.has(city)) {
-          const marker = L.circleMarker(cityCenter(CENTERS, city), { radius: 8, color: "#78aefc", weight: 3, fillColor: "#151b20", fillOpacity: 1 });
-          const tooltipDirection = city === "New York" ? "left" : (city === "Los Angeles" || city === "Phoenix" ? "right" : "top");
-          const tooltipOffset = tooltipDirection === "left" ? [-10, 0] : (tooltipDirection === "right" ? [10, 0] : [0, -9]);
-          marker.bindTooltip(city, { permanent: true, direction: tooltipDirection, offset: tooltipOffset, className: "city-tooltip" });
-          marker.on("click", () => {
-            const next = EVENTS.filter(e => e.city === city).sort((a,b) => a.date - b.date)[0];
-            performerSelect.value = next.performer; fillEvents(next.id);
-          });
-          marker.addTo(leafletMap); mapMarkers.set(city, marker);
-        }
-        const active = city === event.city;
-        mapMarkers.get(city).setRadius(active ? 11 : 8);
-        mapMarkers.get(city).setStyle({ color: active ? "#f4ecdf" : "#78aefc", fillColor: active ? "#ff8052" : "#151b20" });
-        if (active) mapMarkers.get(city).bringToFront();
+    // Each city's cheapest trip for the current travelers and travel mode
+    function cityMapData(n, mode) {
+      return unique(EVENTS.map(e => e.city)).filter(city => CENTERS[city]).map(city => {
+        const best = EVENTS.filter(e => e.city === city).map(event => ({ event, cost: tripCost(event, COSTS, n, mode) })).sort((a,b) => a.cost.total - b.cost.total)[0];
+        return { city, center: CENTERS[city], best, passes: true, reason: "" };
       });
-      document.getElementById("mapLabel").innerHTML = `<strong>${event.city} · ${money(total)}</strong>${event.name}<br>${dateLabel(event.date)} at ${event.venue}`;
+    }
+    function renderMap(event, total) {
+      const n = Number(travelersSelect.value), mode = modeSelect.value;
+      const unlocated = unique(EVENTS.map(e => e.city)).filter(city => !CENTERS[city]);
+      document.getElementById("mapLabel").innerHTML = `<strong>${event.city} · ${money(total)}</strong>${event.name}<br>${dateLabel(event.date)} at ${event.venue}` +
+        unlocated.map(city => `<br><em>${esc(cityCenterError(city))}</em>`).join("");
+      mapView.update(cityMapData(n, mode), { city: event.city, travelers: n, travelMode: mode }, { homeCenter: null, maxMiles: null });
     }
     performerSelect.addEventListener("change", () => fillEvents());
     eventSelect.addEventListener("change", render);
     travelersSelect.addEventListener("change", render);
     modeSelect.addEventListener("change", render);
-    initMap();
     loadTripData().then(data => { EVENTS = data.events; COSTS = data.costs; CENTERS = cityCenters(EVENTS); fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); }).catch(error => showLoadError(document.querySelector(".planner"), error));
   </script>
 </body>
