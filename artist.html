@@ -21,16 +21,17 @@
     </section>
   </main>
   <div id="footer"></div>
-  <script src="site.js?v=3"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="site.js?v=4"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("artists"); document.getElementById("footer").innerHTML = siteFooter();
     const picker = document.getElementById("artistPicker"), comparison = document.getElementById("cityComparison");
-    let EVENTS = [], currentArtist = "";
+    let EVENTS = [], COSTS = {}, currentArtist = "";
     function render() {
       const n = Number(document.getElementById("travelers").value), mode = document.getElementById("travelMode").value;
       const artistEvents = EVENTS.filter(e => e.performer === currentArtist);
       const cheapestByCity = unique(artistEvents.map(e => e.city)).map(city => artistEvents.filter(e => e.city === city).sort((a,b) => a.ticket - b.ticket)[0]);
-      const rows = cheapestByCity.map(event => ({ event, cost: tripCost(event, n, mode) })).sort((a,b) => a.cost.total - b.cost.total);
+      const rows = cheapestByCity.map(event => ({ event, cost: tripCost(event, COSTS, n, mode) })).sort((a,b) => a.cost.total - b.cost.total);
       const max = Math.max(...rows.map(row => row.cost.total));
       document.getElementById("artistName").textContent = currentArtist;
       document.title = `${currentArtist} cost guide | The Real Ticket`;
@@ -41,8 +42,8 @@
     }
     picker.addEventListener("change", () => { location.search = `?artist=${encodeURIComponent(picker.value)}`; });
     document.getElementById("travelers").addEventListener("change", render); document.getElementById("travelMode").addEventListener("change", render);
-    loadEvents().then(events => {
-      EVENTS = events; const performers = unique(events.map(e => e.performer));
+    loadTripData().then(data => {
+      EVENTS = data.events; COSTS = data.costs; const performers = unique(EVENTS.map(e => e.performer));
       const requested = new URLSearchParams(location.search).get("artist"); currentArtist = performers.includes(requested) ? requested : (performers.includes("Olivia Rodrigo") ? "Olivia Rodrigo" : performers[0]);
       picker.innerHTML = performers.map(name => `<option${name === currentArtist ? " selected" : ""}>${name}</option>`).join(""); render();
     }).catch(error => showLoadError(document.getElementById("artistPage"), error));

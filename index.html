@@ -50,7 +50,8 @@
   </main>
   <div id="footer"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="site.js?v=3"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="site.js?v=4"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("explore");
     document.getElementById("footer").innerHTML = siteFooter();
@@ -58,7 +59,7 @@
     const eventSelect = document.getElementById("event");
     const travelersSelect = document.getElementById("travelers");
     const modeSelect = document.getElementById("travelMode");
-    let EVENTS = [];
+    let EVENTS = [], COSTS = {}, CENTERS = {};
     let leafletMap;
     const mapMarkers = new Map();
 
@@ -86,7 +87,7 @@
     }
     function render() {
       const event = selectedEvent(); if (!event) return;
-      const n = Number(travelersSelect.value), mode = modeSelect.value, cost = tripCost(event, n, mode);
+      const n = Number(travelersSelect.value), mode = modeSelect.value, cost = tripCost(event, COSTS, n, mode);
       document.getElementById("estimate").innerHTML = `<div class="estimate-top"><span>Estimated total for ${n} ${n === 1 ? "person" : "people"}</span><strong class="estimate-total">${money(cost.total)}</strong></div>
         <ul class="breakdown"><li><span>Tickets · ${n} × ${money(event.ticket)}</span><strong>${money(cost.tickets)}</strong></li><li><span>Hotel · ${cost.rooms} room${cost.rooms > 1 ? "s" : ""}</span><strong>${money(cost.hotel)}</strong></li><li><span>Meals</span><strong>${money(cost.meals)}</strong></li><li><span>${mode === "drive" ? "Parking" : "Round-trip transit"}</span><strong>${money(cost.localTravel)}</strong></li></ul>
         <div class="estimate-actions"><a class="rule-link" href="artist.html?artist=${encodeURIComponent(event.performer)}">Compare this performer</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
@@ -96,9 +97,11 @@
     function renderMap(event, total) {
       if (!leafletMap) return;
       const cities = unique(EVENTS.map(e => e.city));
+      const unlocated = cities.find(city => !CENTERS[city]);
+      if (unlocated) { document.getElementById("mapLabel").textContent = `Map unavailable. ${cityCenterError(unlocated)}`; return; }
       cities.forEach(city => {
         if (!mapMarkers.has(city)) {
-          const marker = L.circleMarker(CITY_COORDS[city], { radius: 8, color: "#78aefc", weight: 3, fillColor: "#151b20", fillOpacity: 1 });
+          const marker = L.circleMarker(cityCenter(CENTERS, city), { radius: 8, color: "#78aefc", weight: 3, fillColor: "#151b20", fillOpacity: 1 });
           const tooltipDirection = city === "New York" ? "left" : (city === "Los Angeles" || city === "Phoenix" ? "right" : "top");
           const tooltipOffset = tooltipDirection === "left" ? [-10, 0] : (tooltipDirection === "right" ? [10, 0] : [0, -9]);
           marker.bindTooltip(city, { permanent: true, direction: tooltipDirection, offset: tooltipOffset, className: "city-tooltip" });
@@ -120,7 +123,7 @@
     travelersSelect.addEventListener("change", render);
     modeSelect.addEventListener("change", render);
     initMap();
-    loadEvents().then(events => { EVENTS = events; fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); }).catch(error => showLoadError(document.querySelector(".planner"), error));
+    loadTripData().then(data => { EVENTS = data.events; COSTS = data.costs; CENTERS = cityCenters(EVENTS); fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); }).catch(error => showLoadError(document.querySelector(".planner"), error));
   </script>
 </body>
 </html>

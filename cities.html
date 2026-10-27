@@ -159,83 +159,25 @@ h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
   </div>
 </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="site.js?v=4"></script>
 <script>
-// ---------- Config: file locations and the column names this page reads ----------
-const CONFIG = {
-  eventsFile: "data/major_event_ticket_prices.csv",
-  costsFile: "data/city_costs.xlsx",
-  ev: {
-    city: "pilot_city", name: "event_name", type: "event_type", date: "event_date",
-    venue: "canonical_major_venue", venueFallback: "venue_name",
-    priceForTwo: "last_valid_ticket_cost_for_two", priceForTwoFallback: "current_ticket_cost_for_two"
-  },
-  // Cost columns are found by matching these words in the Excel header row
-  costs: { metro: "metro", hotel: "hotel", meal: "inexpensive meal", parking: "parking / day", transit: "transit" },
-  maxTravelers: 4, peoplePerRoom: 2, nameMaxLength: 36
-};
+// ---------- Config (data loading, parsing and the cost model live in site.js) ----------
+const CONFIG = { maxTravelers: 4, nameMaxLength: 36 };
 
 // Event types with a known color; any new type in the data gets --other
 const TYPE_COLOR = { concert: "--concert", sports: "--sports", theater: "--theater" };
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const money = v => "$" + Math.round(v).toLocaleString();
-const median = a => { const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length ? (s.length%2 ? s[m] : (s[m-1]+s[m])/2) : NaN; };
-const norm = s => String(s ?? "").toLowerCase().replace(/\s+/g," ").trim();
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const fmtDate = d => d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
 const short = s => s.length > CONFIG.nameMaxLength ? s.slice(0, CONFIG.nameMaxLength-1) + "…" : s;
-const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 let EVENTS = [], COSTS = {}, TYPES = [], state = { city:null, type:"all", sort:"trip", n:1 };
 
 // ---------- Loading ----------
-async function loadFromUrls(){
-  const [evText, coBuf] = await Promise.all([
-    fetch(CONFIG.eventsFile).then(r => { if(!r.ok) throw new Error(CONFIG.eventsFile+" ("+r.status+")"); return r.text(); }),
-    fetch(CONFIG.costsFile).then(r => { if(!r.ok) throw new Error(CONFIG.costsFile+" ("+r.status+")"); return r.arrayBuffer(); })
-  ]);
-  init(evText, coBuf);
-}
-function parseEvents(text){
-  const rows = Papa.parse(text, { header:true, skipEmptyLines:true, dynamicTyping:false }).data;
-  const c = CONFIG.ev;
-  return rows.map(r => {
-    let p2 = parseFloat(r[c.priceForTwo]);
-    if(!(p2 > 0)) p2 = parseFloat(r[c.priceForTwoFallback]);
-    const d = new Date(r[c.date] + "T00:00:00");
-    return { city:(r[c.city]||"").trim(), name:(r[c.name]||"").trim(), type:norm(r[c.type]) || "other",
-             date:d, venue:(r[c.venue] || r[c.venueFallback] || "").trim(), perPerson: p2 > 0 ? p2/2 : NaN };
-  }).filter(e => e.city && e.name && isFinite(e.perPerson) && !isNaN(e.date));
-}
-function parseCosts(buf){
-  const wb = XLSX.read(buf, { type:"array" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const grid = XLSX.utils.sheet_to_json(ws, { header:1, blankrows:true, defval:null });
-  const hdrIdx = grid.findIndex(r => r && norm(r[0]) === CONFIG.costs.metro);
-  if(hdrIdx < 0) throw new Error("The city costs sheet needs a header row that starts with \"Metro\".");
-  const hdr = grid[hdrIdx].map(norm);
-  const col = key => { const i = hdr.findIndex(h => h.includes(CONFIG.costs[key])); if(i<0) throw new Error("The city costs sheet has no column containing \""+CONFIG.costs[key]+"\"."); return i; };
-  const ix = { hotel:col("hotel"), meal:col("meal"), parking:col("parking"), transit:col("transit") };
-  const out = {};
-  for(let i = hdrIdx+1; i < grid.length; i++){
-    const r = grid[i]; if(!r || r[0] == null || String(r[0]).trim() === "") break;
-    out[String(r[0]).trim()] = { hotel:+r[ix.hotel], meal:+r[ix.meal], parking:+r[ix.parking], transit:+r[ix.transit] };
-  }
-  return out;
-}
-// Matches an event city ("Houston") to a cost row ("Houston metro") without hard-coded names
-function matchCost(city, costs){
-  const c = norm(city), keys = Object.keys(costs);
-  const k = keys.find(k => norm(k) === c) || keys.find(k => norm(k).startsWith(c)) || keys.find(k => c.startsWith(norm(k)));
-  return k ? costs[k] : null;
-}
-function init(evText, coBuf){
-  const ev = parseEvents(evText), co = parseCosts(coBuf);
-  const missing = [...new Set(ev.map(e => e.city))].filter(c => !matchCost(c, co));
-  EVENTS = ev.filter(e => matchCost(e.city, co));
-  if(!EVENTS.length) throw new Error("No events matched a city in the city costs sheet.");
-  COSTS = Object.fromEntries([...new Set(EVENTS.map(e => e.city))].map(c => [c, matchCost(c, co)]));
+async function loadFromUrls(){ init(await loadTripData()); }
+function init({ events, costs, missing }){
+  EVENTS = events; COSTS = costs;
   TYPES = [...new Set(EVENTS.map(e => e.type))].sort();
   const st = document.getElementById("status");
   st.textContent = missing.length ? "No city costs found for " + missing.join(", ") + ", so those events are hidden." : "";
@@ -249,12 +191,8 @@ function init(evText, coBuf){
 }
 
 // ---------- Cost model ----------
-function stay(city){
-  const k = COSTS[city], rooms = Math.ceil(state.n / CONFIG.peoplePerRoom);
-  const hotel = rooms * k.hotel, meals = state.n * k.meal, parking = k.parking;
-  return { rooms, hotel, meals, parking, total: hotel + meals + parking };
-}
-const tickets = e => e.perPerson * state.n;
+const stay = city => stayCost(COSTS[city], state.n);
+const tickets = e => e.ticket * state.n;
 const typeColor = t => css(TYPE_COLOR[t] || "--other");
 const forN = () => state.n === 1 ? "1 person" : state.n + " people";
 function citySummary(c){
@@ -271,7 +209,7 @@ function renderDeals(){
   all.forEach(({e, trip}) => {
     const li = document.createElement("li"), b = document.createElement("button");
     b.innerHTML = `<span class="dn"><i class="dot" style="background:${typeColor(e.type)}"></i><span>${esc(e.name)}</span></span><span class="dp">${money(trip)}</span>
-      <span class="dm">${esc(e.city)}, ${e.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})}, tickets from about ${money(e.perPerson)}</span>`;
+      <span class="dm">${esc(e.city)}, ${e.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})}, tickets from about ${money(e.ticket)}</span>`;
     b.title = e.name;
     b.onclick = () => { state.city = e.city; state.type = "all"; state.sort = "trip"; render(); document.getElementById("detail").scrollIntoView({behavior:"smooth", block:"start"}); };
     li.appendChild(b); el.appendChild(li);
@@ -311,7 +249,7 @@ function renderDetail(){
   const el = document.getElementById("detail");
   el.innerHTML = `
     <h2 class="c-name">${esc(c)}</h2>
-    <p class="c-sum">${cityEvents.length} upcoming events. A one-night trip for ${forN()} costs about <strong>${money(Math.min(...trips))} to ${money(Math.max(...trips))}</strong>. The average ticket in ${esc(c)} is about ${money(cityEvents.reduce((a,e) => a + e.perPerson, 0) / cityEvents.length)}${state.n>1?" per person":""}.</p>
+    <p class="c-sum">${cityEvents.length} upcoming events. A one-night trip for ${forN()} costs about <strong>${money(Math.min(...trips))} to ${money(Math.max(...trips))}</strong>. The average ticket in ${esc(c)} is about ${money(cityEvents.reduce((a,e) => a + e.ticket, 0) / cityEvents.length)}${state.n>1?" per person":""}.</p>
     <ul class="costs">
       <li><div class="k">Hotel, avg. per night</div><div class="v">${money(k.hotel)}</div></li>
       <li><div class="k">Meal, avg. per person</div><div class="v">${money(k.meal)}</div></li>
@@ -372,7 +310,7 @@ function drawPlot(evs, st){
       const b = document.getElementById("plotwrap").getBoundingClientRect();
       const line = (l,v) => `<div class="l"><span>${l}</span><span>${money(v)}</span></div>`;
       tip.innerHTML = `<div class="t">${esc(e.name)}</div>` +
-        line(`Tickets, ${state.n} × about ${money(e.perPerson)}`, e.tk) + line("Hotel", st.hotel) + line("Meals", st.meals) + line("Parking", st.parking) +
+        line(`Tickets, ${state.n} × about ${money(e.ticket)}`, e.tk) + line("Hotel", st.hotel) + line("Meals", st.meals) + line("Parking", st.localTravel) +
         `<div class="l sum"><span>Estimated total</span><span>${money(e.trip)}</span></div>`;
       let lx = cx - b.left + 16, ly = cy - b.top + 14;
       if(lx > b.width - 240) lx = Math.max(0, cx - b.left - 240);
@@ -392,7 +330,7 @@ function enablePicker(){
   const fEv = document.getElementById("fEv"), fCo = document.getElementById("fCo");
   const tryLoad = async () => {
     if(!fEv.files[0] || !fCo.files[0]) return;
-    try { init(await fEv.files[0].text(), await fCo.files[0].arrayBuffer()); }
+    try { init(joinCityCosts(parseEvents(await fEv.files[0].text()), parseCosts(await fCo.files[0].arrayBuffer()))); }
     catch(err){ showError(err.message); }
   };
   fEv.onchange = tryLoad; fCo.onchange = tryLoad;
