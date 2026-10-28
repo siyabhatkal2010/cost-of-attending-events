@@ -72,19 +72,26 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .costs .v{font-size:28px;font-weight:700;font-family:var(--serif);line-height:1.1;font-feature-settings:"tnum"}
 .costs .u{font-size:13px;color:var(--ink-3)}
 .tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
-.type-pie{display:grid;grid-template-columns:minmax(130px,190px) minmax(0,1fr);align-items:center;gap:22px;margin:24px 0 30px;padding:20px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper)}
-.type-pie h3{grid-column:1/-1;margin:0;font:600 22px/1.2 var(--serif)}
+.type-viz-row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.35fr);gap:16px;margin:24px 0 30px}
+.type-pie,.price-trend{min-width:0;margin:0;padding:20px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper)}
+.type-pie h3,.price-trend h3{margin:0 0 14px;font:600 22px/1.2 var(--serif)}
+.type-pie-content{display:grid;grid-template-columns:minmax(100px,160px) minmax(0,1fr);align-items:center;gap:14px}
 .type-pie svg{display:block;width:100%;height:auto;overflow:visible}
 .type-pie-slice{cursor:pointer;stroke:var(--paper);stroke-width:2;transition:opacity .15s}
 .type-pie-slice:hover,.type-pie-slice:focus{opacity:.78;outline:none;stroke:var(--ink);stroke-width:3}
-.type-pie-legend{display:grid;gap:9px}
-.type-pie-legend button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:6px 0;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;cursor:pointer;color:var(--ink)}
+.type-pie-legend{display:grid;gap:8px}
+.type-pie-legend button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:5px 0;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;cursor:pointer;color:var(--ink);font-size:13px}
 .type-pie-legend button:hover{color:var(--select)}
-.type-pie-name{display:inline-flex;align-items:center;gap:8px}
-.type-pie-dot{width:10px;height:10px;border-radius:50%}
-.type-pie-legend small{color:var(--ink-2)}
-@media(max-width:520px){.type-pie{grid-template-columns:1fr;gap:14px}.type-pie h3{grid-column:auto}.type-pie svg{max-width:220px;margin:auto}}
-.types{display:flex;flex-wrap:wrap;gap:6px}
+.type-pie-name{display:inline-flex;align-items:center;gap:7px}
+.type-pie-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.type-pie-legend small{color:var(--ink-2);white-space:nowrap}
+.price-trend-note{margin:-6px 0 10px;color:var(--ink-2);font-size:12px}
+#priceTrend{display:block;width:100%;height:auto;overflow:visible}
+.trend-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;color:var(--ink-2);font-size:12px}
+.trend-legend span{display:inline-flex;align-items:center;gap:6px}
+.trend-legend i{width:9px;height:9px;border-radius:50%}
+@media(max-width:900px){.type-viz-row{grid-template-columns:1fr}.type-pie-content{grid-template-columns:minmax(130px,190px) minmax(0,1fr)}}
+@media(max-width:520px){.type-pie-content{grid-template-columns:1fr}.type-pie-content svg{max-width:220px;margin:auto}}.types{display:flex;flex-wrap:wrap;gap:6px}
 .types button{border:1px solid var(--rule);background:var(--paper);border-radius:var(--r);padding:5px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-size:14px}
 .types button:hover{border-color:var(--ink-3)}
 .types button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--cream)}
@@ -447,11 +454,18 @@ function renderDetail(){
       <li><div class="k">Parking, avg. per day</div><div class="v">${money(k.parking)}</div></li>
       <li><div class="k">Est. stay for ${forN()}</div><div class="v">${money(st.total)}</div><div class="u">${st.rooms} room${st.rooms>1?"s":""}, meals, parking</div></li>
     </ul>
-    <section class="type-pie" aria-labelledby="typePieTitle">
-      <h3 id="typePieTitle">Events by type</h3>
-      <div id="typePieChart"></div>
-      <div class="type-pie-legend" id="typePieLegend"></div>
-    </section>
+    <div class="type-viz-row">
+      <section class="type-pie" aria-labelledby="typePieTitle">
+        <h3 id="typePieTitle">Events by type</h3>
+        <div class="type-pie-content"><div id="typePieChart"></div><div class="type-pie-legend" id="typePieLegend"></div></div>
+      </section>
+      <section class="price-trend" aria-labelledby="priceTrendTitle">
+        <h3 id="priceTrendTitle">Ticket price over time</h3>
+        <p class="price-trend-note">Average listed ticket price per event date</p>
+        <svg id="priceTrend" role="img" aria-label="Average ticket price over time by event type"></svg>
+        <div class="trend-legend" id="trendLegend"></div>
+      </section>
+    </div>
     <div class="tools">
       <div class="types" id="types" role="group" aria-label="Filter by event type"></div>
       <label class="sort">Sort by <select id="sort"><option value="trip">Trip cost</option><option value="date">Date</option></select></label>
@@ -463,6 +477,7 @@ function renderDetail(){
     <div id="plotwrap"><svg id="plot" role="img" aria-label="Ticket cost and total trip cost for each event in ${esc(c)}"></svg><div id="tip"></div></div>
     <p class="note">All costs are estimates. Ticket prices are the lowest resale listings on SeatData when the data was last pulled, and they change daily. Hotel, meal and parking costs are city averages.</p>`;
   renderTypePie(typesHere, cityEvents);
+  renderPriceTrend(typesHere, cityEvents);
   const tw = document.getElementById("types");
   [["all","All events",null], ...typesHere.map(t => [t, cap(t), typeColor(t)])].forEach(([v,l,col]) => {
     const b = document.createElement("button"); b.setAttribute("aria-pressed", state.type===v);
@@ -471,6 +486,42 @@ function renderDetail(){
   });
   const sel = document.getElementById("sort"); sel.value = state.sort; sel.onchange = () => { state.sort = sel.value; renderDetail(); };
   drawPlot(evs, st);
+}
+function renderPriceTrend(typesHere, cityEvents){
+  const svg = document.getElementById("priceTrend"), legend = document.getElementById("trendLegend");
+  const grouped = typesHere.map(type => {
+    const byDay = new Map();
+    cityEvents.filter(e => e.type === type).forEach(e => {
+      const day = new Date(e.date.getFullYear(), e.date.getMonth(), e.date.getDate()).getTime();
+      if(!byDay.has(day)) byDay.set(day, []);
+      byDay.get(day).push(e.perPerson);
+    });
+    return {type, points:[...byDay].map(([day,prices]) => ({day, price:prices.reduce((a,b)=>a+b,0)/prices.length, count:prices.length})).sort((a,b)=>a.day-b.day)};
+  }).filter(series => series.points.length);
+  const all = grouped.flatMap(series => series.points);
+  if(!all.length){ svg.innerHTML = ""; legend.innerHTML = ""; return; }
+  const W=640,H=280,L=54,R=18,T=12,B=48,plotW=W-L-R,plotH=H-T-B;
+  const minDay=Math.min(...all.map(p=>p.day)), maxDay=Math.max(...all.map(p=>p.day));
+  const x=day => L + (maxDay===minDay ? .5 : (day-minDay)/(maxDay-minDay))*plotW;
+  const maxPrice=Math.max(...all.map(p=>p.price)), step=niceStep(maxPrice/4), top=Math.ceil(maxPrice/step)*step;
+  const y=price => T + plotH - price/top*plotH;
+  let content="";
+  for(let value=0;value<=top;value+=step){
+    const yy=y(value);
+    content += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="${css("--rule")}" stroke-dasharray="2 4"/><text x="${L-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css("--ink-3")}">${money(value)}</text>`;
+  }
+  grouped.forEach(series => {
+    const color=typeColor(series.type), pts=series.points;
+    if(pts.length>1) content += `<path d="${pts.map((p,i)=>`${i?"L":"M"} ${x(p.day)} ${y(p.price)}`).join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    pts.forEach(p => {
+      const date=new Date(p.day).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+      content += `<circle cx="${x(p.day)}" cy="${y(p.price)}" r="5" fill="${color}" stroke="${css("--paper")}" stroke-width="2"><title>${esc(`${cap(series.type)} · ${date}: ${money(p.price)} average${p.count>1?` across ${p.count} events`:""}`)}</title></circle>`;
+    });
+  });
+  const first=new Date(minDay).toLocaleDateString("en-US",{month:"short",day:"numeric"}), last=new Date(maxDay).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  content += `<text x="${L}" y="${H-14}" text-anchor="start" font-size="11" fill="${css("--ink-3")}">${first}</text><text x="${W-R}" y="${H-14}" text-anchor="end" font-size="11" fill="${css("--ink-3")}">${last}</text>`;
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.innerHTML=content;
+  legend.innerHTML=grouped.map(series=>`<span><i style="background:${typeColor(series.type)}"></i>${esc(cap(series.type))}</span>`).join("");
 }
 function renderTypePie(typesHere, cityEvents){
   const chart = document.getElementById("typePieChart"), legend = document.getElementById("typePieLegend");
