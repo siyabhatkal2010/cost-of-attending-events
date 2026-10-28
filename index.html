@@ -223,12 +223,6 @@
         });
 
         if (active) marker.bringToFront();
-
-        marker.bindPopup(
-          `<strong>${city}</strong><br>` +
-          `Average trip cost: ${money(average)}<br>` +
-          `${count} sample event${count === 1 ? "" : "s"}`
-        );
       });
 
       const selected = city_avgs.find(c => c.city === event.city);
