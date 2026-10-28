@@ -32,7 +32,15 @@
       </div>
 
       <aside class="map-panel" aria-labelledby="map-title">
-        <div class="map-head"><h2 id="map-title">Pick your stage</h2><p>5 sample metros</p></div>
+        <!-- <div class="map-head"><h2 id="map-title">Pick your stage</h2><p>5 sample metros</p></div> -->
+         <div class = "map-head">
+          <h2 id = "map-title">Pick your stage</h2><p>5 sample metros</p>
+          <div class = "map-toggle" role = "group" aria-label = "Visualization toggle">
+            <button type = "button" id = "eventViewBtn" class = "map-toggle-btn active" aria-pressed = "true">View by Events</button>
+            <button type = "button" id = "costViewBtn" class = "map-toggle-btn" aria-pressed = "false">View by Costs</button>
+          </div>
+
+         </div>
         <div class="map-shell">
           <div id="eventMap" role="region" aria-label="Interactive map of sample event cities"></div>
           <div class="map-label" id="mapLabel">Choose an event to see it on the map.</div>
@@ -42,17 +50,16 @@
 
     <section class="scatter-section" aria-labelledby="scatter-title">
       <div class="section-head"><div><p class="eyebrow">Cost drivers</p><h2 id="scatter-title">Ticket price vs. local costs</h2></div><p>Is the ticket or the destination driving your total? Each dot is one event. Select a dot to update the trip planner.</p></div>
-      <div class="viz-control"><label for="scatterTravelers">Travelers</label><select id="scatterTravelers"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
       <p id="scatterCount" class="scatter-caption" aria-live="polite">Loading events…</p>
-      <div class="viz-layout"><div id="costScatter" class="scatter-chart"></div><aside id="scatterDetail" class="viz-detail" aria-live="polite">Select a dot to view its city and price breakdown.</aside></div>
+      <div id="costScatter" class="scatter-chart"></div>
       <div class="scatter-legend"><span><i style="background:#78aefc"></i>New York</span><span><i style="background:#ff8052"></i>Los Angeles</span><span><i style="background:#38c997"></i>Chicago</span><span><i style="background:#ad8aff"></i>Houston</span><span><i style="background:#f0c674"></i>Phoenix</span></div>
       <p class="data-note">Based on sampled event ticket prices and city-average hotel, meal, and transportation estimates. Costs exclude airfare, taxes and fees. This is not historical pricing data.</p>
     </section>
 
     <section class="calendar-section" aria-labelledby="calendar-title">
       <div class="section-head"><div><p class="eyebrow">Find a better date</p><h2 id="calendar-title">Event affordability calendar</h2></div><p>Which dates offer the lowest estimated event-trip costs? Each colored day shows the cheapest sampled event on that date.</p></div>
-      <div class="calendar-filters"><label class="calendar-month-label" for="calendarMonth">Month <select id="calendarMonth" aria-label="Select calendar month"></select></label><label class="calendar-month-label" for="calendarCity">City <select id="calendarCity" aria-label="Filter calendar by city"></select></label><label class="calendar-month-label" for="calendarTravelers">Travelers <select id="calendarTravelers"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label></div>
-      <div class="viz-layout"><div id="calendarHeatmap" class="calendar-grid" role="group" aria-label="Event affordability by date"></div><aside id="calendarPriceDetail" class="viz-detail" aria-live="polite">Select a date to see the event and price breakdown.</aside></div>
+      <label class="calendar-month-label" for="calendarMonth">Month <select id="calendarMonth" aria-label="Select calendar month"></select></label>
+      <div id="calendarHeatmap" class="calendar-grid" role="group" aria-label="Event affordability by date"></div>
       <p id="calendarDetail" class="data-note" aria-live="polite">Loading calendar…</p>
       <p class="data-note">Sample events only; blank dates do not imply no events exist. Prices are estimates, not historical ticket prices.</p>
     </section>
@@ -79,6 +86,7 @@
     const modeSelect = document.getElementById("travelMode");
     let EVENTS = [];
     let leafletMap;
+    let mapView = "event"; // "event" for viewByEvent (default), "cost" for viewByCost (proportional cost)
     const mapMarkers = new Map();
 
     function option(value, label) { return `<option value="${value}">${label}</option>`; }
@@ -111,9 +119,22 @@
         <div class="estimate-actions"><a class="rule-link" href="artist.html?artist=${encodeURIComponent(event.performer)}">Compare this performer</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
         <p class="data-note">Prototype estimate excludes airfare, taxes and fees. Sample resale and city-average costs.</p>`;
       renderMap(event, cost.total);
-      renderCostScatter(EVENTS, Number(document.getElementById("scatterTravelers").value), mode, event.id, chosen => { performerSelect.value = chosen.performer; fillEvents(chosen.id); });
+      renderCostScatter(EVENTS, n, mode, event.id, chosen => { performerSelect.value = chosen.performer; fillEvents(chosen.id); });
     }
+
     function renderMap(event, total) {
+      if (!leafletMap || !event) {
+        return;
+      }
+
+      if (mapView === "cost") {
+        renderCostMap(event, total);
+      } else {
+        renderEventMap(event, total);
+      }
+    }
+
+    function renderEventMap(event, total) {
       if (!leafletMap) return;
       const cities = unique(EVENTS.map(e => e.city));
       cities.forEach(city => {
@@ -135,11 +156,115 @@
       });
       document.getElementById("mapLabel").innerHTML = `<strong>${event.city} · ${money(total)}</strong>${event.name}<br>${dateLabel(event.date)} at ${event.venue}`;
     }
+    
+    // assign proportional city markers based on average event cost for each city
+    function renderCostMap(event, total) {
+      if (!leafletMap) return;
+      const travelers = Number(travelersSelect.value);
+      const mode = modeSelect.value;
+
+      const city_avgs = unique(EVENTS.map(e => e.city))
+        .filter(city => CITY_COORDS[city] && CITY_COSTS[city])
+        .map(city => {
+          const cityEvents = EVENTS.filter(e => e.city === city);
+          const totals = cityEvents.map(e => tripCost(e, travelers, mode).total);
+          const count = totals.length;
+          const sum = totals.reduce((a, b) => a + b, 0);
+          const avg = sum / count;
+
+          // each city will have an Object: city, # events, avg event cost
+          return {
+            city,
+            count: count,
+            average: avg
+          };
+        }).filter(c => c.count > 0); // remove cities with 0 events
+
+      if (!city_avgs.length) return;
+
+      const min = Math.min(...city_avgs.map(c => c.average));
+      const max = Math.max(...city_avgs.map(c => c.average));
+      const range = max - min;
+
+      city_avgs.forEach(city_avg => {
+        const city = city_avg.city;
+        const count = city_avg.count;
+        const average = city_avg.average;
+        // calculate what each city's average event cost (AEC) is compared to the highest AEC among all cities
+        // used for making the proportional markers
+        const relativeCost = max > 0 ? average / max : 0;
+        const radius = max > 0 ? 26 * Math.sqrt(relativeCost) : 6;
+        // 1 = the highest AEC
+        // 0 = the lowest AEC
+        const ratio = range > 0 ? (average - min) / range : 0;
+
+        // green if low, else orange if middling, else red for high
+        // colors helpful for visually comparing how cities' AECs proportionally compare to each other's
+        const color = ratio < 0.33 ? "#38f545" : 
+                      ratio < 0.67 ? "#fa9f20" : "#f71e1e";
+
+        let marker = mapMarkers.get(city);
+
+        if (!marker) {
+          marker = L.circleMarker(CITY_COORDS[city], {});
+          marker.addTo(leafletMap);
+          mapMarkers.set(city, marker);
+        }
+
+        const active = city === event.city;
+
+        marker.setRadius(active ? radius + 3 : radius);
+
+        marker.setStyle({
+          color: active ? "#f4ecdf" : "#78aefc",
+          weight: 3,
+          fillColor: color,
+          fillOpacity: 1
+        });
+
+        if (active) marker.bringToFront();
+
+        marker.bindPopup(
+          `<strong>${city}</strong><br>` +
+          `Average trip cost: ${money(average)}<br>` +
+          `${count} sample event${count === 1 ? "" : "s"}`
+        );
+      });
+
+      const selected = city_avgs.find(c => c.city === event.city);
+
+      if (selected) {
+        document.getElementById("mapLabel").innerHTML =
+          `<strong>${event.city} · Average ${money(selected.average)}</strong>` +
+          `${event.name} · ${money(total)}<br>` +
+          `${dateLabel(event.date)} at ${event.venue}`;
+      }
+    }
+
+    function setMapView(view) {
+      mapView = view;
+
+      const eventButton = document.getElementById("eventViewBtn");
+      const costButton = document.getElementById("costViewBtn");
+      const title = document.getElementById("map-title");
+
+      eventButton.classList.toggle("active", view === "event");
+      costButton.classList.toggle("active", view === "cost");
+
+      eventButton.setAttribute("aria-pressed", String(view === "event"));
+      costButton.setAttribute("aria-pressed", String(view === "cost"));
+
+      title.textContent = view === "event" ? "Pick your stage" : "Compare city costs";
+
+      render();
+    }
+
+    document.getElementById("eventViewBtn").addEventListener("click", () => setMapView("event"));
+    document.getElementById("costViewBtn").addEventListener("click", () => setMapView("cost"));
     performerSelect.addEventListener("change", () => fillEvents());
     eventSelect.addEventListener("change", render);
     travelersSelect.addEventListener("change", render);
     modeSelect.addEventListener("change", render);
-    document.getElementById("scatterTravelers").addEventListener("change", render);
     initMap();
     loadEvents().then(events => { EVENTS = events; fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); initCalendarHeatmap(EVENTS, chosen => { performerSelect.value = chosen.performer; fillEvents(chosen.id); }); }).catch(error => showLoadError(document.querySelector(".planner"), error));
   </script>

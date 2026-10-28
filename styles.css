@@ -138,6 +138,34 @@ button, select { cursor: pointer; }
 
 .site-footer { display: flex; justify-content: space-between; gap: 24px; padding: 26px clamp(18px, 4vw, 64px); border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 12px; }
 
+.map-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #39434b;
+  border-radius: 999px;
+  background: #151b20;
+}
+.map-toggle-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: transparent;
+  color: #c4cbd1;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.map-toggle-btn.active {
+  background: #f4ecdf;
+  color: #151b20;
+}
+.map-toggle-btn:focus-visible {
+  outline: 2px solid #78aefc;
+  outline-offset: 3px;
+}
+
 @media (max-width: 900px) {
   .explorer, .directory-head { grid-template-columns: 1fr; }
   .map-panel { position: static; }
@@ -189,20 +217,3 @@ button, select { cursor: pointer; }
 .calendar-day:disabled { opacity: .36; cursor: default; }
 .calendar-spacer { min-height: 1px; }
 @media (max-width: 560px) { .calendar-section { padding: .9rem; } .calendar-grid { gap: .2rem; } .calendar-day { font-size: .8rem; } }
-
-/* Shared visualization side panels */
-.viz-layout { display:grid; grid-template-columns:minmax(0,2fr) minmax(240px,1fr); gap:22px; align-items:start; }
-.viz-detail { border:1px solid var(--rule); padding:20px; background:var(--paper); min-width:0; color:var(--ink-2); }
-.viz-detail h3 { margin:0 0 10px; color:var(--ink); font:650 25px/1.2 var(--serif); }
-.viz-detail p { overflow-wrap:anywhere; }
-.viz-breakdown { list-style:none; padding:0; margin:16px 0; }
-.viz-breakdown li { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--rule); }
-.viz-breakdown strong { color:var(--ink); }
-.viz-breakdown .viz-total { font-weight:700; color:var(--ink); }
-.calendar-filters { display:flex; flex-wrap:wrap; gap:16px; }
-.calendar-grid { max-width:none; width:100%; }
-@media(max-width:850px){.viz-layout{grid-template-columns:1fr;}}
-
-/* Independent traveler controls for the two visualizations */
-.viz-control { display:flex; align-items:center; gap:12px; margin:14px 0; font-weight:600; }
-.viz-control select { padding:8px 12px; background:#19232c; color:#f4ecdf; border:1px solid #637487; border-radius:6px; }
