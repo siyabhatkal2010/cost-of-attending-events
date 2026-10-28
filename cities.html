@@ -72,6 +72,18 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .costs .v{font-size:28px;font-weight:700;font-family:var(--serif);line-height:1.1;font-feature-settings:"tnum"}
 .costs .u{font-size:13px;color:var(--ink-3)}
 .tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.type-pie{display:grid;grid-template-columns:minmax(130px,190px) minmax(0,1fr);align-items:center;gap:22px;margin:24px 0 30px;padding:20px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper)}
+.type-pie h3{grid-column:1/-1;margin:0;font:600 22px/1.2 var(--serif)}
+.type-pie svg{display:block;width:100%;height:auto;overflow:visible}
+.type-pie-slice{cursor:pointer;stroke:var(--paper);stroke-width:2;transition:opacity .15s}
+.type-pie-slice:hover,.type-pie-slice:focus{opacity:.78;outline:none;stroke:var(--ink);stroke-width:3}
+.type-pie-legend{display:grid;gap:9px}
+.type-pie-legend button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:6px 0;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;cursor:pointer;color:var(--ink)}
+.type-pie-legend button:hover{color:var(--select)}
+.type-pie-name{display:inline-flex;align-items:center;gap:8px}
+.type-pie-dot{width:10px;height:10px;border-radius:50%}
+.type-pie-legend small{color:var(--ink-2)}
+@media(max-width:520px){.type-pie{grid-template-columns:1fr;gap:14px}.type-pie h3{grid-column:auto}.type-pie svg{max-width:220px;margin:auto}}
 .types{display:flex;flex-wrap:wrap;gap:6px}
 .types button{border:1px solid var(--rule);background:var(--paper);border-radius:var(--r);padding:5px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-size:14px}
 .types button:hover{border-color:var(--ink-3)}
@@ -152,7 +164,7 @@ body.event-modal-open{overflow:hidden}
 h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
 .c-name{font-weight:700;letter-spacing:-.02em;line-height:.95}
 .city .nm{font-weight:600;font-size:25px}
-\.city .tot,.costs .v{font-family:var(--sans);font-weight:600;letter-spacing:-.01em}
+.city .tot,.costs .v{font-family:var(--sans);font-weight:600;letter-spacing:-.01em}
 .city .tot{font-size:22px}
 .costs .v{font-size:24px}
 </style>
@@ -435,6 +447,11 @@ function renderDetail(){
       <li><div class="k">Parking, avg. per day</div><div class="v">${money(k.parking)}</div></li>
       <li><div class="k">Est. stay for ${forN()}</div><div class="v">${money(st.total)}</div><div class="u">${st.rooms} room${st.rooms>1?"s":""}, meals, parking</div></li>
     </ul>
+    <section class="type-pie" aria-labelledby="typePieTitle">
+      <h3 id="typePieTitle">Events by type</h3>
+      <div id="typePieChart"></div>
+      <div class="type-pie-legend" id="typePieLegend"></div>
+    </section>
     <div class="tools">
       <div class="types" id="types" role="group" aria-label="Filter by event type"></div>
       <label class="sort">Sort by <select id="sort"><option value="trip">Trip cost</option><option value="date">Date</option></select></label>
@@ -445,6 +462,7 @@ function renderDetail(){
     </div>
     <div id="plotwrap"><svg id="plot" role="img" aria-label="Ticket cost and total trip cost for each event in ${esc(c)}"></svg><div id="tip"></div></div>
     <p class="note">All costs are estimates. Ticket prices are the lowest resale listings on SeatData when the data was last pulled, and they change daily. Hotel, meal and parking costs are city averages.</p>`;
+  renderTypePie(typesHere, cityEvents);
   const tw = document.getElementById("types");
   [["all","All events",null], ...typesHere.map(t => [t, cap(t), typeColor(t)])].forEach(([v,l,col]) => {
     const b = document.createElement("button"); b.setAttribute("aria-pressed", state.type===v);
@@ -453,6 +471,30 @@ function renderDetail(){
   });
   const sel = document.getElementById("sort"); sel.value = state.sort; sel.onchange = () => { state.sort = sel.value; renderDetail(); };
   drawPlot(evs, st);
+}
+function renderTypePie(typesHere, cityEvents){
+  const chart = document.getElementById("typePieChart"), legend = document.getElementById("typePieLegend");
+  const counts = typesHere.map(type => ({ type, count: cityEvents.filter(e => e.type === type).length }));
+  const total = counts.reduce((sum, item) => sum + item.count, 0);
+  const cx = 100, cy = 100, r = 88;
+  let angle = -Math.PI / 2;
+  const point = a => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const paths = counts.map(({type,count}) => {
+    const start = angle, end = angle + count / total * Math.PI * 2; angle = end;
+    const [x1,y1] = point(start), [x2,y2] = point(end);
+    const d = count === total ? `M ${cx} ${cy-r} A ${r} ${r} 0 1 1 ${cx} ${cy+r} A ${r} ${r} 0 1 1 ${cx} ${cy-r} Z`
+      : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${end-start > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`;
+    const color = typeColor(type), pct = Math.round(count / total * 100);
+    return {type,count,pct,color,d};
+  });
+  chart.innerHTML = `<svg viewBox="0 0 200 200" role="img" aria-label="${esc(cityEvents.length + " events by type in " + state.city)}">${paths.map(p => `<path class="type-pie-slice" d="${p.d}" fill="${p.color}" tabindex="0" role="button" aria-label="${esc(cap(p.type) + ": " + p.count + " events, " + p.pct + " percent")}" data-type="${esc(p.type)}"></path>`).join("")}</svg>`;
+  legend.innerHTML = paths.map(p => `<button type="button" data-type="${esc(p.type)}"><span class="type-pie-name"><i class="type-pie-dot" style="background:${p.color}"></i>${esc(cap(p.type))}</span><small>${p.count} · ${p.pct}%</small></button>`).join("");
+  const choose = type => { state.type = type; renderDetail(); };
+  chart.querySelectorAll(".type-pie-slice").forEach(slice => {
+    slice.addEventListener("click", () => choose(slice.dataset.type));
+    slice.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); choose(slice.dataset.type); } });
+  });
+  legend.querySelectorAll("button").forEach(button => button.addEventListener("click", () => choose(button.dataset.type)));
 }
 function drawPlot(evs, st){
   const svg = document.getElementById("plot"), tip = document.getElementById("tip"), NS = "http://www.w3.org/2000/svg";
