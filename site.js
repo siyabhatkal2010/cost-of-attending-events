@@ -14,6 +14,14 @@ const CITY_COORDS = {
   Phoenix: [33.4484, -112.074]
 };
 
+const HOTEL_COSTS = {};
+const HOTEL_LABELS = {
+  motel: "Motel / budget",
+  standard: "Standard hotel",
+  upscale: "Upscale hotel",
+  five_star: "Five-star hotel"
+};
+
 function parseCSV(text) {
   const rows = [];
   let row = [], value = "", quoted = false;
@@ -35,8 +43,18 @@ function parseCSV(text) {
 }
 
 async function loadEvents() {
-  const response = await fetch("data/major_event_ticket_prices.csv");
+  const [response, hotelResponse] = await Promise.all([
+    fetch("data/major_event_ticket_prices.csv"),
+    fetch("data/hotel_quality_costs.csv")
+  ]);
   if (!response.ok) throw new Error(`Event data could not be loaded (${response.status}).`);
+  if (!hotelResponse.ok) throw new Error(`Hotel data could not be loaded (${hotelResponse.status}).`);
+  parseCSV(await hotelResponse.text()).forEach(row => {
+    HOTEL_COSTS[row.city] = {
+      motel: Number(row.motel), standard: Number(row.standard),
+      upscale: Number(row.upscale), five_star: Number(row.five_star)
+    };
+  });
   return parseCSV(await response.text()).map(row => {
     const priceForTwo = Number(row.last_valid_ticket_cost_for_two || row.current_ticket_cost_for_two);
     return {
@@ -58,14 +76,20 @@ async function loadEvents() {
   }).filter(event => event.city && event.name && Number.isFinite(event.ticket));
 }
 
-function tripCost(event, travelers = 1, travelMode = "drive") {
+function tripCost(event, travelers = 1, travelMode = "drive", hotelClass = "standard", homeCity = "") {
   const city = CITY_COSTS[event.city];
   const rooms = Math.ceil(travelers / 2);
   const tickets = event.ticket * travelers;
-  const hotel = city.hotel * rooms;
+  const nightlyRate = HOTEL_COSTS[event.city]?.[hotelClass] || city.hotel;
+  const isHomeCity = Boolean(homeCity) && event.city === homeCity;
+  const hotel = isHomeCity ? 0 : nightlyRate * rooms;
   const meals = city.meal * travelers;
   const localTravel = travelMode === "transit" ? city.transit * 2 * travelers : city.parking;
-  return { tickets, hotel, meals, localTravel, rooms, total: tickets + hotel + meals + localTravel };
+  return { tickets, hotel, meals, localTravel, rooms, nightlyRate, hotelClass, homeCity, isHomeCity, total: tickets + hotel + meals + localTravel };
+}
+
+function hotelCostLabel(cost) {
+  return cost.isHomeCity ? "Home city · no hotel needed" : `${HOTEL_LABELS[cost.hotelClass]} · ${cost.rooms} room${cost.rooms > 1 ? "s" : ""}`;
 }
 
 function money(value) {

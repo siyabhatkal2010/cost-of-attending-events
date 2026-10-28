@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
   <div id="header"></div>
@@ -21,21 +21,30 @@
     <section class="explorer" aria-labelledby="planner-title">
       <div class="planner">
         <h2 id="planner-title">Plan an event trip</h2>
-        <p class="planner-note">Start anywhere. Every choice updates the estimate.</p>
-        <label class="field"><span>Performer or team</span><select id="performer"></select></label>
-        <label class="field"><span>Event</span><select id="event"></select></label>
+        <p class="planner-note">Choose what you want to see, then narrow the available events.</p>
+        <label class="field"><span>1. Event category</span><select id="category"><option value="concert">Artists</option><option value="sports">Sports</option><option value="theater">Performances</option></select></label>
+        <div class="field-row">
+          <label class="field"><span>2. Search</span><input id="eventSearch" type="search" placeholder="Search artists or concerts" autocomplete="off"></label>
+          <label class="field"><span>On or after</span><input id="eventDate" type="date"></label>
+        </div>
+        <label class="field"><span>3. Event</span><select id="event"></select></label>
+        <p class="filter-note" id="eventCount" aria-live="polite"></p>
         <div class="field-row">
           <label class="field"><span>Travelers</span><select id="travelers"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+          <label class="field"><span>Hotel class</span><select id="hotelClass"><option value="motel">Motel / budget</option><option value="standard" selected>Standard hotel</option><option value="upscale">Upscale hotel</option><option value="five_star">Five-star hotel</option></select></label>
+        </div>
+        <div class="field-row">
+          <label class="field"><span>Home location</span><select id="homeCity"><option value="">Outside these cities</option><option>Chicago</option><option>Houston</option><option>Los Angeles</option><option>New York</option><option>Phoenix</option></select><small class="field-help">Hotel cost is removed for events in your home city.</small></label>
           <label class="field"><span>Getting around</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option></select></label>
         </div>
         <div class="estimate" id="estimate" aria-live="polite"></div>
       </div>
 
       <aside class="map-panel" aria-labelledby="map-title">
-        <div class="map-head"><h2 id="map-title">Pick your stage</h2><p>5 sample metros</p></div>
+        <div class="map-head"><h2 id="map-title">Compare cities</h2><p id="mapUnit">Average trip</p></div>
         <div class="map-shell">
-          <div id="eventMap" role="region" aria-label="Interactive map of sample event cities"></div>
-          <div class="map-label" id="mapLabel">Choose an event to see it on the map.</div>
+          <div id="eventMap" role="region" aria-label="Map of average event-trip costs by city"></div>
+          <div class="map-label" id="mapLabel">Totals include tickets, meals and parking.</div>
         </div>
       </aside>
     </section>
@@ -46,7 +55,7 @@
       <p id="scatterCount" class="scatter-caption" aria-live="polite">Loading events…</p>
       <div class="viz-layout"><div id="costScatter" class="scatter-chart"></div><aside id="scatterDetail" class="viz-detail" aria-live="polite">Select a dot to view its city and price breakdown.</aside></div>
       <div class="scatter-legend"><span><i style="background:#78aefc"></i>New York</span><span><i style="background:#ff8052"></i>Los Angeles</span><span><i style="background:#38c997"></i>Chicago</span><span><i style="background:#ad8aff"></i>Houston</span><span><i style="background:#f0c674"></i>Phoenix</span></div>
-      <p class="data-note">Based on sampled event ticket prices and city-average hotel, meal, and transportation estimates. Costs exclude airfare, taxes and fees. This is not historical pricing data.</p>
+      <p class="data-note">Based on sampled event ticket prices, hotel-quality nightly rates, and city-average meal and transportation estimates. Costs exclude airfare, taxes and fees. This is not historical pricing data.</p>
     </section>
 
     <section class="calendar-section" aria-labelledby="calendar-title">
@@ -67,31 +76,56 @@
   </main>
   <div id="footer"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="site.js?v=3"></script>
-  <script src="cost-scatter.js"></script>
-  <script src="calendar-heatmap.js"></script>
+  <script src="site.js?v=5"></script>
+  <script src="cost-scatter.js?v=3"></script>
+  <script src="calendar-heatmap.js?v=3"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("explore");
     document.getElementById("footer").innerHTML = siteFooter();
-    const performerSelect = document.getElementById("performer");
+    const categorySelect = document.getElementById("category");
+    const eventSearch = document.getElementById("eventSearch");
+    const eventDate = document.getElementById("eventDate");
     const eventSelect = document.getElementById("event");
     const travelersSelect = document.getElementById("travelers");
+    const hotelClassSelect = document.getElementById("hotelClass");
+    const homeCitySelect = document.getElementById("homeCity");
     const modeSelect = document.getElementById("travelMode");
     let EVENTS = [];
     let leafletMap;
     const mapMarkers = new Map();
 
     function option(value, label) { return `<option value="${value}">${label}</option>`; }
-    function fillPerformers() {
-      performerSelect.innerHTML = option("", "All performers and teams") + unique(EVENTS.map(e => e.performer)).map(name => option(name, name)).join("");
+    function localDateKey(date) {
+      const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, "0"), d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    function filteredEvents() {
+      const query = eventSearch.value.trim().toLowerCase(), after = eventDate.value;
+      return EVENTS.filter(event => event.type === categorySelect.value)
+        .filter(event => !query || `${event.name} ${event.performer} ${event.city} ${event.venue}`.toLowerCase().includes(query))
+        .filter(event => !after || localDateKey(event.date) >= after)
+        .sort((a,b) => a.date - b.date);
+    }
+    function updateCategoryControls() {
+      const copy = { concert: "Search artists or concerts", sports: "Search teams or games", theater: "Search shows or performers" };
+      eventSearch.placeholder = copy[categorySelect.value];
+      const dates = EVENTS.filter(event => event.type === categorySelect.value).map(event => localDateKey(event.date)).sort();
+      eventDate.min = dates[0] || ""; eventDate.max = dates.at(-1) || "";
     }
     function fillEvents(preferredId) {
-      const filtered = EVENTS.filter(e => !performerSelect.value || e.performer === performerSelect.value).sort((a,b) => a.date - b.date);
-      eventSelect.innerHTML = filtered.map(e => option(e.id, `${e.name} — ${e.city}`)).join("");
-      if (preferredId && filtered.some(e => e.id === preferredId)) eventSelect.value = preferredId;
+      const previousId = preferredId || eventSelect.value, filtered = filteredEvents();
+      eventSelect.innerHTML = filtered.length ? filtered.map(e => option(e.id, `${e.name} — ${e.city} · ${dateLabel(e.date)}`)).join("") : option("", "No matching events");
+      eventSelect.disabled = !filtered.length;
+      if (previousId && filtered.some(e => e.id === previousId)) eventSelect.value = previousId;
+      document.getElementById("eventCount").textContent = `${filtered.length} matching event${filtered.length === 1 ? "" : "s"}`;
       render();
     }
-    function selectedEvent() { return EVENTS.find(e => e.id === eventSelect.value) || EVENTS[0]; }
+    function chooseEvent(event) {
+      categorySelect.value = event.type;
+      eventSearch.value = ""; eventDate.value = "";
+      updateCategoryControls(); fillEvents(event.id);
+    }
+    function selectedEvent() { return EVENTS.find(e => e.id === eventSelect.value) || null; }
     function initMap() {
       if (!window.L) {
         document.getElementById("mapLabel").innerHTML = "The interactive map library did not load. The event planner still works.";
@@ -104,44 +138,64 @@
       }).addTo(leafletMap);
     }
     function render() {
-      const event = selectedEvent(); if (!event) return;
-      const n = Number(travelersSelect.value), mode = modeSelect.value, cost = tripCost(event, n, mode);
+      const event = selectedEvent(), n = Number(travelersSelect.value), mode = modeSelect.value, hotelClass = hotelClassSelect.value, homeCity = homeCitySelect.value;
+      if (!event) {
+        document.getElementById("estimate").innerHTML = `<p class="empty-estimate"><strong>No events match those filters.</strong><br>Try another search or date.</p>`;
+        renderMap(null);
+        renderCostScatter(EVENTS, Number(document.getElementById("scatterTravelers").value), mode, "", chooseEvent, hotelClass, homeCity);
+        return;
+      }
+      const cost = tripCost(event, n, mode, hotelClass, homeCity);
       document.getElementById("estimate").innerHTML = `<div class="estimate-top"><span>Estimated total for ${n} ${n === 1 ? "person" : "people"}</span><strong class="estimate-total">${money(cost.total)}</strong></div>
-        <ul class="breakdown"><li><span>Tickets · ${n} × ${money(event.ticket)}</span><strong>${money(cost.tickets)}</strong></li><li><span>Hotel · ${cost.rooms} room${cost.rooms > 1 ? "s" : ""}</span><strong>${money(cost.hotel)}</strong></li><li><span>Meals</span><strong>${money(cost.meals)}</strong></li><li><span>${mode === "drive" ? "Parking" : "Round-trip transit"}</span><strong>${money(cost.localTravel)}</strong></li></ul>
+        <ul class="breakdown"><li><span>Tickets · ${n} × ${money(event.ticket)}</span><strong>${money(cost.tickets)}</strong></li><li><span>${hotelCostLabel(cost)}</span><strong>${money(cost.hotel)}</strong></li><li><span>Meals</span><strong>${money(cost.meals)}</strong></li><li><span>${mode === "drive" ? "Parking" : "Round-trip transit"}</span><strong>${money(cost.localTravel)}</strong></li></ul>
         <div class="estimate-actions"><a class="rule-link" href="artist.html?artist=${encodeURIComponent(event.performer)}">Compare this performer</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
-        <p class="data-note">Prototype estimate excludes airfare, taxes and fees. Sample resale and city-average costs.</p>`;
-      renderMap(event, cost.total);
-      renderCostScatter(EVENTS, Number(document.getElementById("scatterTravelers").value), mode, event.id, chosen => { performerSelect.value = chosen.performer; fillEvents(chosen.id); });
+        <p class="data-note">Prototype estimate excludes airfare, taxes and fees. ${cost.isHomeCity ? `Lodging is removed because ${event.city} is your selected home city.` : "Hotel-class rates are sample planning estimates."}</p>`;
+      renderMap(event);
+      renderCostScatter(EVENTS, Number(document.getElementById("scatterTravelers").value), mode, event.id, chooseEvent, hotelClass, homeCity);
     }
-    function renderMap(event, total) {
+    function cityMarkerIcon(city, average, active) {
+      const slug = city.toLowerCase().replace(/[^a-z]+/g, "-");
+      return L.divIcon({
+        className: `city-cost-marker city-${slug}${active ? " active" : ""}`,
+        html: `<span class="marker-dot"></span><span class="marker-label"><b>${city}</b><strong>${money(average)} avg.</strong></span>`,
+        iconSize: [0, 0], iconAnchor: [0, 0]
+      });
+    }
+    function renderMap(event) {
       if (!leafletMap) return;
-      const cities = unique(EVENTS.map(e => e.city));
+      const n = Number(travelersSelect.value), mode = modeSelect.value, hotelClass = hotelClassSelect.value, homeCity = homeCitySelect.value;
+      const matchingEvents = event ? EVENTS.filter(candidate => candidate.name === event.name) : [];
+      const cities = unique(matchingEvents.map(candidate => candidate.city));
+      mapMarkers.forEach((marker, city) => {
+        if (!cities.includes(city) && leafletMap.hasLayer(marker)) leafletMap.removeLayer(marker);
+      });
+      document.getElementById("mapUnit").textContent = `${cities.length} ${cities.length === 1 ? "city" : "cities"} · ${n} ${n === 1 ? "traveler" : "travelers"}`;
       cities.forEach(city => {
         if (!mapMarkers.has(city)) {
-          const marker = L.circleMarker(CITY_COORDS[city], { radius: 8, color: "#78aefc", weight: 3, fillColor: "#151b20", fillOpacity: 1 });
-          const tooltipDirection = city === "New York" ? "left" : (city === "Los Angeles" || city === "Phoenix" ? "right" : "top");
-          const tooltipOffset = tooltipDirection === "left" ? [-10, 0] : (tooltipDirection === "right" ? [10, 0] : [0, -9]);
-          marker.bindTooltip(city, { permanent: true, direction: tooltipDirection, offset: tooltipOffset, className: "city-tooltip" });
-          marker.on("click", () => {
-            const next = EVENTS.filter(e => e.city === city).sort((a,b) => a.date - b.date)[0];
-            performerSelect.value = next.performer; fillEvents(next.id);
-          });
+          const marker = L.marker(CITY_COORDS[city], { icon: cityMarkerIcon(city, 0, false), interactive: false, keyboard: false });
           marker.addTo(leafletMap); mapMarkers.set(city, marker);
+        } else if (!leafletMap.hasLayer(mapMarkers.get(city))) {
+          mapMarkers.get(city).addTo(leafletMap);
         }
-        const active = city === event.city;
-        mapMarkers.get(city).setRadius(active ? 11 : 8);
-        mapMarkers.get(city).setStyle({ color: active ? "#f4ecdf" : "#78aefc", fillColor: active ? "#ff8052" : "#151b20" });
-        if (active) mapMarkers.get(city).bringToFront();
+        const cityEvents = matchingEvents.filter(candidate => candidate.city === city);
+        const average = cityEvents.reduce((sum, candidate) => sum + tripCost(candidate, n, mode, hotelClass, homeCity).total, 0) / cityEvents.length;
+        const active = event && city === event.city;
+        mapMarkers.get(city).setIcon(cityMarkerIcon(city, average, active));
+        mapMarkers.get(city).setZIndexOffset(active ? 1000 : 0);
       });
-      document.getElementById("mapLabel").innerHTML = `<strong>${event.city} · ${money(total)}</strong>${event.name}<br>${dateLabel(event.date)} at ${event.venue}`;
+      document.getElementById("mapLabel").textContent = "Totals include tickets, meals and parking.";
     }
-    performerSelect.addEventListener("change", () => fillEvents());
+    categorySelect.addEventListener("change", () => { eventSearch.value = ""; eventDate.value = ""; updateCategoryControls(); fillEvents(); });
+    eventSearch.addEventListener("input", () => fillEvents());
+    eventDate.addEventListener("change", () => fillEvents());
     eventSelect.addEventListener("change", render);
     travelersSelect.addEventListener("change", render);
+    hotelClassSelect.addEventListener("change", render);
+    homeCitySelect.addEventListener("change", render);
     modeSelect.addEventListener("change", render);
     document.getElementById("scatterTravelers").addEventListener("change", render);
     initMap();
-    loadEvents().then(events => { EVENTS = events; fillPerformers(); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; performerSelect.value = featured.performer; fillEvents(featured.id); initCalendarHeatmap(EVENTS, chosen => { performerSelect.value = chosen.performer; fillEvents(chosen.id); }); }).catch(error => showLoadError(document.querySelector(".planner"), error));
+    loadEvents().then(events => { EVENTS = events; const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; categorySelect.value = featured.type; updateCategoryControls(); fillEvents(featured.id); initCalendarHeatmap(EVENTS, chooseEvent); }).catch(error => showLoadError(document.querySelector(".planner"), error));
   </script>
 </body>
 </html>

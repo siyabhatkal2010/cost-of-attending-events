@@ -61,7 +61,10 @@ button, select { cursor: pointer; }
 .field > span { display: block; margin-bottom: 6px; color: var(--ink-2); font-size: 13px; font-weight: 700; }
 .field select, .field input { width: 100%; min-height: 48px; padding: 10px 40px 10px 12px; border: 1px solid var(--rule); border-radius: 3px; background: var(--cream); }
 .field select:focus, .field input:focus { border-color: var(--blue); }
+.field-help { display: block; margin-top: 6px; color: var(--ink-3); font-size: 11px; line-height: 1.35; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.filter-note { min-height: 18px; margin: 7px 0 0; color: var(--ink-3); font-size: 12px; }
+.empty-estimate { margin: 0; color: var(--ink-2); }
 
 .estimate { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--ink); }
 .estimate-top { display: flex; justify-content: space-between; gap: 18px; align-items: baseline; }
@@ -84,7 +87,16 @@ button, select { cursor: pointer; }
 .leaflet-control-zoom a { background: var(--paper) !important; color: var(--ink) !important; border-color: var(--rule) !important; }
 .leaflet-control-attribution { background: color-mix(in srgb, var(--paper) 88%, transparent) !important; font: 10px var(--sans) !important; }
 .leaflet-tooltip.city-tooltip { padding: 3px 7px; border: 1px solid var(--ink); border-radius: 3px; background: var(--paper); color: var(--ink); box-shadow: none; font: 700 11px var(--sans); }
+.leaflet-tooltip.city-tooltip span, .leaflet-tooltip.city-tooltip strong { display: block; }
+.leaflet-tooltip.city-tooltip .map-average { color: var(--blue); font-size: 10px; font-weight: 700; }
 .leaflet-tooltip-top.city-tooltip::before { border-top-color: var(--ink); }
+.city-cost-marker { background: transparent; border: 0; }
+.city-cost-marker .marker-dot { position: absolute; left: 0; top: 0; width: 17px; height: 17px; border: 3px solid var(--blue); border-radius: 50%; background: var(--paper); transform: translate(-50%, -50%); box-shadow: 0 0 0 2px rgba(13,17,20,.7); }
+.city-cost-marker .marker-label { position: absolute; left: 12px; top: -19px; display: block; padding: 3px 7px; border: 1px solid var(--ink); border-radius: 3px; background: var(--paper); color: var(--ink); font: 700 11px/1.25 var(--sans); white-space: nowrap; box-shadow: none; }
+.city-cost-marker .marker-label b, .city-cost-marker .marker-label strong { display: block; }
+.city-cost-marker .marker-label strong { color: var(--blue); font-size: 10px; }
+.city-cost-marker.city-new-york .marker-label { right: 12px; left: auto; }
+.city-cost-marker.active .marker-dot { width: 22px; height: 22px; border-color: var(--ink); background: var(--orange); }
 .map-label { position: absolute; z-index: 500; left: 18px; bottom: 28px; max-width: calc(100% - 36px); padding: 12px 14px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); font-size: 13px; box-shadow: 5px 5px 0 rgba(0,0,0,.35); pointer-events: none; }
 .map-label strong { display: block; font: 650 21px/1.2 var(--serif); }
 

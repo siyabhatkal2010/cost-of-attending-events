@@ -1,0 +1,6 @@
+city,motel,standard,upscale,five_star,data_status,rate_basis
+New York,180,336,520,850,sample_estimate,nightly room rate
+Los Angeles,105,169,285,520,sample_estimate,nightly room rate
+Chicago,120,233,360,590,sample_estimate,nightly room rate
+Houston,80,136,220,390,sample_estimate,nightly room rate
+Phoenix,90,154,250,430,sample_estimate,nightly room rate

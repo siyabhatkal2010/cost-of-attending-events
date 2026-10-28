@@ -1,11 +1,11 @@
 /* Ticket vs. local-cost scatterplot; uses the same estimates as the planner. */
-function renderCostScatter(events, travelers, mode, selectedId, onSelect) {
+function renderCostScatter(events, travelers, mode, selectedId, onSelect, hotelClass = "standard", homeCity = "") {
   const host = document.getElementById('costScatter');
   if (!host || !events.length) return;
   const width = 900, height = 420, left = 78, right = 26, top = 26, bottom = 68;
   const plotW = width-left-right, plotH = height-top-bottom;
   const records = events.map(event => {
-    const c = tripCost(event, travelers, mode);
+    const c = tripCost(event, travelers, mode, hotelClass, homeCity);
     return {event, x:c.tickets, y:c.hotel+c.meals+c.localTravel, total:c.total};
   });
   const maxX = Math.max(1,...records.map(d=>d.x))*1.12;
@@ -27,7 +27,7 @@ function renderCostScatter(events, travelers, mode, selectedId, onSelect) {
   svg+='</svg>';
   host.innerHTML=svg;
   const panel = document.getElementById("scatterDetail");
-  const show = d => { if (!panel) return; const c=tripCost(d.event,travelers,mode); panel.innerHTML = `<h3>${escapeHtml(d.event.city)}</h3><p>${escapeHtml(d.event.name)} · ${escapeHtml(dateLabel(d.event.date))}</p><ul class="viz-breakdown"><li>Tickets <strong>${money(c.tickets)}</strong></li><li>Hotel <strong>${money(c.hotel)}</strong></li><li>Meals <strong>${money(c.meals)}</strong></li><li>${mode === "drive" ? "Parking" : "Transit"} <strong>${money(c.localTravel)}</strong></li><li class="viz-total">Estimated total <strong>${money(c.total)}</strong></li></ul><p class="data-note">${travelers} traveler${travelers===1?"":"s"}. Click a dot to select this event in the planner.</p>`; };
+  const show = d => { if (!panel) return; const c=tripCost(d.event,travelers,mode,hotelClass,homeCity); panel.innerHTML = `<h3>${escapeHtml(d.event.city)}</h3><p>${escapeHtml(d.event.name)} · ${escapeHtml(dateLabel(d.event.date))}</p><ul class="viz-breakdown"><li>Tickets <strong>${money(c.tickets)}</strong></li><li>${escapeHtml(hotelCostLabel(c))} <strong>${money(c.hotel)}</strong></li><li>Meals <strong>${money(c.meals)}</strong></li><li>${mode === "drive" ? "Parking" : "Transit"} <strong>${money(c.localTravel)}</strong></li><li class="viz-total">Estimated total <strong>${money(c.total)}</strong></li></ul><p class="data-note">${travelers} traveler${travelers===1?"":"s"}${c.isHomeCity?" · lodging removed for your home city":""}. Click a dot to select this event in the planner.</p>`; };
   const escapeHtml = v => String(v).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const chosen = records.find(d=>d.event.id===selectedId); if(chosen) show(chosen);
   host.querySelectorAll('[data-point]').forEach(node=>{
@@ -38,5 +38,5 @@ function renderCostScatter(events, travelers, mode, selectedId, onSelect) {
     node.addEventListener('click',select);
     node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}});
   });
-  document.getElementById('scatterCount').textContent=`${records.length} sample events · ${travelers} traveler${travelers===1?'':'s'} · ${mode==='drive'?'drive + park':'transit'}`;
+  document.getElementById('scatterCount').textContent=`${records.length} sample events · ${travelers} traveler${travelers===1?'':'s'} · ${HOTEL_LABELS[hotelClass].toLowerCase()}${homeCity?` · home: ${homeCity}`:''} · ${mode==='drive'?'drive + park':'transit'}`;
 }

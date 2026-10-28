@@ -6,7 +6,7 @@ function initCalendarHeatmap(events, onChoose) {
   const citySelect = document.getElementById('calendarCity');
   const pricePanel = document.getElementById('calendarPriceDetail');
   const safe = v => String(v).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const showPrice = event => { if (!pricePanel) return; const n=Number(document.getElementById('calendarTravelers').value), mode=document.getElementById('travelMode').value, c=tripCost(event,n,mode); pricePanel.innerHTML=`<h3>${safe(event.city)}</h3><p>${safe(event.name)} · ${safe(dateLabel(event.date))}</p><ul class="viz-breakdown"><li>Tickets <strong>${money(c.tickets)}</strong></li><li>Hotel <strong>${money(c.hotel)}</strong></li><li>Meals <strong>${money(c.meals)}</strong></li><li>${mode==='drive'?'Parking':'Transit'} <strong>${money(c.localTravel)}</strong></li><li class="viz-total">Estimated total <strong>${money(c.total)}</strong></li></ul><p class="data-note">${n} traveler${n===1?'':'s'} · estimated costs</p>`; };
+  const showPrice = event => { if (!pricePanel) return; const n=Number(document.getElementById('calendarTravelers').value), mode=document.getElementById('travelMode').value, hotelClass=document.getElementById('hotelClass')?.value||'standard', homeCity=document.getElementById('homeCity')?.value||'', c=tripCost(event,n,mode,hotelClass,homeCity); pricePanel.innerHTML=`<h3>${safe(event.city)}</h3><p>${safe(event.name)} · ${safe(dateLabel(event.date))}</p><ul class="viz-breakdown"><li>Tickets <strong>${money(c.tickets)}</strong></li><li>${safe(hotelCostLabel(c))} <strong>${money(c.hotel)}</strong></li><li>Meals <strong>${money(c.meals)}</strong></li><li>${mode==='drive'?'Parking':'Transit'} <strong>${money(c.localTravel)}</strong></li><li class="viz-total">Estimated total <strong>${money(c.total)}</strong></li></ul><p class="data-note">${n} traveler${n===1?'':'s'}${c.isHomeCity?' · lodging removed for your home city':''} · estimated costs</p>`; };
   let selectedEvent = null;
   if (citySelect) { citySelect.replaceChildren(); const all=document.createElement('option');all.value='';all.textContent='All cities';citySelect.append(all); [...new Set(events.map(e=>e.city))].sort().forEach(city=>{const option=document.createElement('option');option.value=city;option.textContent=city;citySelect.append(option);}); }
   if (!host || !monthSelect || !detail) return;
@@ -19,11 +19,13 @@ function initCalendarHeatmap(events, onChoose) {
     const [year, month] = monthSelect.value.split('-').map(Number);
     const n = Number(document.getElementById('calendarTravelers').value);
     const mode = document.getElementById('travelMode').value;
+    const hotelClass = document.getElementById('hotelClass')?.value || 'standard';
+    const homeCity = document.getElementById('homeCity')?.value || '';
     const byDay = new Map();
     events.forEach(event => {
       if (event.date.getFullYear() !== year || event.date.getMonth() !== month-1 || (citySelect?.value && event.city !== citySelect.value)) return;
       const day = event.date.getDate();
-      const total = tripCost(event,n,mode).total;
+      const total = tripCost(event,n,mode,hotelClass,homeCity).total;
       const old = byDay.get(day);
       if (!old || total < old.total) byDay.set(day,{event,total});
     });
@@ -59,5 +61,7 @@ function initCalendarHeatmap(events, onChoose) {
   citySelect?.addEventListener('change',()=>{selectedEvent=null;update();});
   document.getElementById('calendarTravelers').addEventListener('change',update);
   document.getElementById('travelMode').addEventListener('change',update);
+  document.getElementById('hotelClass')?.addEventListener('change',update);
+  document.getElementById('homeCity')?.addEventListener('change',update);
   update();
 }
