@@ -26,15 +26,8 @@ function renderCostScatter(events, travelers, mode, selectedId, onSelect) {
   });
   svg+='</svg>';
   host.innerHTML=svg;
-  const panel = document.getElementById("scatterDetail");
-  const show = d => { if (!panel) return; const c=tripCost(d.event,travelers,mode); panel.innerHTML = `<h3>${escapeHtml(d.event.city)}</h3><p>${escapeHtml(d.event.name)} · ${escapeHtml(dateLabel(d.event.date))}</p><ul class="viz-breakdown"><li>Tickets <strong>${money(c.tickets)}</strong></li><li>Hotel <strong>${money(c.hotel)}</strong></li><li>Meals <strong>${money(c.meals)}</strong></li><li>${mode === "drive" ? "Parking" : "Transit"} <strong>${money(c.localTravel)}</strong></li><li class="viz-total">Estimated total <strong>${money(c.total)}</strong></li></ul><p class="data-note">${travelers} traveler${travelers===1?"":"s"}. Click a dot to select this event in the planner.</p>`; };
-  const escapeHtml = v => String(v).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-  const chosen = records.find(d=>d.event.id===selectedId); if(chosen) show(chosen);
   host.querySelectorAll('[data-point]').forEach(node=>{
-    const record=records[Number(node.dataset.point)];
-    const select=()=>{show(record);onSelect(record.event);};
-    node.addEventListener("mouseenter",()=>show(record));
-    node.addEventListener("focus",()=>show(record));
+    const select=()=>onSelect(records[Number(node.dataset.point)].event);
     node.addEventListener('click',select);
     node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}});
   });
