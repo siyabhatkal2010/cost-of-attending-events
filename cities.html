@@ -105,6 +105,59 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .err{background:#3b1e1a;color:#ffc4b5;border-radius:var(--r);padding:12px 14px}
 #picker{display:none;margin-top:12px}
 #picker label{display:block;margin:8px 0}
+
+/* Event popup window */
+.event-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgb(0 0 0 / 72%)}
+.event-modal[hidden]{display:none}
+.event-panel{position:relative;width:min(720px,100%);max-height:88vh;overflow-y:auto;padding:clamp(22px,4vw,36px);background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:var(--r);box-shadow:0 24px 80px rgb(0 0 0 / 35%)}
+.event-close{position:absolute;top:14px;right:14px;display:grid;place-items:center;width:38px;height:38px;border:1px solid var(--rule);border-radius:var(--r);background:transparent;color:var(--ink);cursor:pointer;font-size:24px;line-height:1}
+.event-close:hover{background:var(--sand)}
+.event-heading{padding-right:28px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.event-type,.event-section-label{color:var(--ink-2);text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:600}
+.event-panel h2{margin:10px 0 8px;font:700 clamp(28px,5vw,42px)/1.08 var(--serif);letter-spacing:-.02em}
+.event-meta{margin:0;color:var(--ink-2);font-size:14px;line-height:1.5}
+.event-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin-top:20px;border-top:1px solid var(--rule);border-left:1px solid var(--rule)}
+.event-fact{min-width:0;padding:13px 15px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.event-fact-label{display:block;margin-bottom:6px;color:var(--ink-2);font-size:10px;font-weight:600;letter-spacing:.09em}
+.event-fact strong{display:block;font-size:14px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.event-fact-venue{grid-column:1/-1}
+.event-trip{margin-top:24px}
+.event-trip-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px;background:var(--select-wash);border-left:3px solid var(--select)}
+.event-trip-heading h3{margin:6px 0 0;font:600 20px/1.2 var(--serif)}
+.event-trip-total{min-width:0;text-align:right}
+.event-trip-total strong{display:block;font-size:clamp(25px,4vw,32px);line-height:1.2;letter-spacing:-.02em;overflow-wrap:anywhere}
+.event-trip-total span{display:block;margin-top:5px;color:var(--ink-2);font-size:12px;line-height:1.5}
+.event-travelers{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0}
+.event-travelers>span{color:var(--ink-2);font-size:13px}
+.event-costs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--rule);border-left:1px solid var(--rule)}
+.event-costs>div{min-width:0;padding:15px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.event-costs small{display:block;margin-bottom:6px;color:var(--ink-2);font-size:12px}
+.event-costs strong{font-size:21px;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
+.event-total{margin-top:20px;padding:18px;background:var(--select-wash);border-left:3px solid var(--select)}
+.event-total strong{display:block;font-size:30px}
+.event-chart{display:flex;height:12px;overflow:hidden;margin-top:14px;background:var(--sand);border-radius:var(--r)}
+.event-chart span{display:block;height:100%}
+.event-chart-key{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px;color:var(--ink-2);font-size:12px}
+.event-chart-key span{display:inline-flex;align-items:center;gap:6px}
+.event-chart-key i{width:9px;height:9px;border-radius:2px}
+.event-visualization{margin-top:24px;padding-top:18px;border-top:1px solid var(--rule)}
+.event-visualization h3{margin:0 0 6px;color:var(--ink);font-family:var(--serif);font-size:1.25rem}
+.event-viz-note{margin:0 0 14px;color:var(--ink-2);font-size:.85rem;line-height:1.5}
+#eventTreemap{width:100%;min-height:280px}
+#eventTreemap .apexcharts-tooltip{color:#151b20}
+body.event-modal-open{overflow:hidden}
+
+@media(max-width:480px){
+.event-modal{padding:10px}
+.event-panel{padding:22px 16px;max-height:92vh}
+.event-fact{padding:12px}
+.event-trip-heading{flex-direction:column;gap:14px;margin-top:24px}
+.event-trip-total{text-align:left}
+.event-travelers{align-items:flex-start;flex-direction:column}
+.event-costs>div{padding:12px}
+.event-costs strong{font-size:18px}
+}
+
 @media (prefers-reduced-motion:no-preference){.city .bar i{transition:width .35s ease}}
 /* Option D: serif for headings and city names, Libre Franklin for text and numbers */
 h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
@@ -115,6 +168,7 @@ h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
 .costs .v{font-size:24px}
 .deals .dp{font-size:16px}
 .deals h3{font-weight:600}
+
 </style>
 </head>
 <body>
@@ -157,17 +211,74 @@ h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
     </div>
     <section id="detail" aria-live="polite"></section>
   </div>
+
+  <div class="layout" id="app" hidden></div>
 </main>
+
+<!-- Popup window -->
+<section class="event-modal" id="eventModal" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle" hidden>
+  <div class="event-panel" role="document">
+    <button class="event-close" id="eventModalClose" type="button" aria-label="Close event details">x</button>
+    <header class="event-heading">
+      <div class="event-type" id="eventModalType"></div>
+      <h2 id="eventModalTitle">Event name</h2>
+    </header>
+    <section class="event-facts" aria-label="Event information">
+      <div class="event-fact">
+        <span class="event-fact-label">DATE & TIME</span>
+        <strong id="eventModalDate">—</strong>
+        <strong id="eventModalTime">—</strong>
+      </div>
+      <div class="event-fact">
+        <span class="event-fact-label">CITY</span>
+        <strong id="eventModalCity">—</strong>
+      </div>
+      <div class="event-fact event-fact-venue">
+        <span class="event-fact-label">VENUE</span>
+        <strong id="eventModalVenue">—</strong>
+      </div>
+    </section>
+    <section class="event-trip" aria-label="Trip estimate">
+      <div class="event-travelers">
+        <span id="popupPartyLbl">Travelers</span>
+        <div class="seg" id="popupPpl" role="group" aria-labelledby="popupPartyLbl"></div>
+      </div>
+      <div class="event-costs" aria-label="Estimated cost breakdown">
+        <div><small>Tickets</small><strong id="eventModalTickets">—</strong></div>
+        <div><small>Hotel</small><strong id="eventModalHotel">—</strong></div>
+        <div><small>Meals</small><strong id="eventModalMeals">—</strong></div>
+        <div><small>Parking</small><strong id="eventModalParking">—</strong></div>
+      </div>
+      <div class="event-trip-heading">
+        <div>
+          <span class="event-section-label">YOUR TRIP</span>
+          <h3>Estimated total</h3>
+        </div>
+        <div class="event-trip-total">
+          <strong id="eventModalTotal">—</strong>
+          <span id="eventModalPerPerson"></span>
+        </div>
+      </div>
+    </section>
+    <section class="event-visualization">
+      <h3>Where your money goes</h3>
+      <p class="event-viz-note">See how the estimated trip cost is divided across tickets, hotel, meals and parking.</p>
+      <div id="eventTreemap"></div>
+    </section>
+  </div>
+</section>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.5.0/dist/apexcharts.min.js"></script>
 <script>
 // ---------- Config: file locations and the column names this page reads ----------
 const CONFIG = {
   eventsFile: "data/major_event_ticket_prices.csv",
   costsFile: "data/city_costs.xlsx",
   ev: {
-    city: "pilot_city", name: "event_name", type: "event_type", date: "event_date",
+    city: "pilot_city", name: "event_name", type: "event_type", date: "event_date", time: "event_time",
     venue: "canonical_major_venue", venueFallback: "venue_name",
     priceForTwo: "last_valid_ticket_cost_for_two", priceForTwoFallback: "current_ticket_cost_for_two"
   },
@@ -188,6 +299,8 @@ const short = s => s.length > CONFIG.nameMaxLength ? s.slice(0, CONFIG.nameMaxLe
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 let EVENTS = [], COSTS = {}, TYPES = [], state = { city:null, type:"all", sort:"trip", n:1 };
+let popupTravelerCount = state.n;
+let activePopupEvent = null;
 
 // ---------- Loading ----------
 async function loadFromUrls(){
@@ -197,6 +310,20 @@ async function loadFromUrls(){
   ]);
   init(evText, coBuf);
 }
+const fmtTime = t => {
+  if (t == null || String(t).trim() === "") return "";
+  const match = String(t).trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return "";
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return "";
+  const d = new Date(2000, 0, 1, hours, minutes);
+  return d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+};
 function parseEvents(text){
   const rows = Papa.parse(text, { header:true, skipEmptyLines:true, dynamicTyping:false }).data;
   const c = CONFIG.ev;
@@ -205,7 +332,7 @@ function parseEvents(text){
     if(!(p2 > 0)) p2 = parseFloat(r[c.priceForTwoFallback]);
     const d = new Date(r[c.date] + "T00:00:00");
     return { city:(r[c.city]||"").trim(), name:(r[c.name]||"").trim(), type:norm(r[c.type]) || "other",
-             date:d, venue:(r[c.venue] || r[c.venueFallback] || "").trim(), perPerson: p2 > 0 ? p2/2 : NaN };
+             date:d, time: fmtTime(r[c.time]), venue:(r[c.venue] || r[c.venueFallback] || "").trim(), perPerson: p2 > 0 ? p2/2 : NaN };
   }).filter(e => e.city && e.name && isFinite(e.perPerson) && !isNaN(e.date));
 }
 function parseCosts(buf){
@@ -249,12 +376,12 @@ function init(evText, coBuf){
 }
 
 // ---------- Cost model ----------
-function stay(city){
-  const k = COSTS[city], rooms = Math.ceil(state.n / CONFIG.peoplePerRoom);
-  const hotel = rooms * k.hotel, meals = state.n * k.meal, parking = k.parking;
+function stay(city, travelerCount = state.n){
+  const k = COSTS[city], rooms = Math.ceil(travelerCount / CONFIG.peoplePerRoom);
+  const hotel = rooms * k.hotel, meals = travelerCount * k.meal, parking = k.parking;
   return { rooms, hotel, meals, parking, total: hotel + meals + parking };
 }
-const tickets = e => e.perPerson * state.n;
+const tickets = (e, travelerCount = state.n) => e.perPerson * travelerCount;
 const typeColor = t => css(TYPE_COLOR[t] || "--other");
 const forN = () => state.n === 1 ? "1 person" : state.n + " people";
 function citySummary(c){
@@ -282,7 +409,26 @@ function renderPeople(){
   for(let n=1; n<=CONFIG.maxTravelers; n++){
     const b = document.createElement("button"); b.textContent = n;
     b.setAttribute("aria-pressed", n===state.n); b.setAttribute("aria-label", n === 1 ? "1 traveler" : n + " travelers");
-    b.onclick = () => { state.n = n; render(); }; el.appendChild(b);
+    b.onclick = () => { state.n = n; popupTravelerCount = state.n; render(); }; el.appendChild(b);
+  }
+}
+function renderPopupPeople() {
+  const el = document.getElementById("popupPpl");
+  el.innerHTML = "";
+  for (let n = 1; n <= CONFIG.maxTravelers; n++) {
+    const b = document.createElement("button");
+    b.textContent = n;
+    b.setAttribute("aria-pressed", n === popupTravelerCount);
+    b.setAttribute(
+      "aria-label",
+      n === 1 ? "1 traveler" : n + " travelers"
+    );
+    b.onclick = () => {
+      popupTravelerCount = n;
+      renderPopupPeople();
+      updatePopupCosts();
+    };
+    el.appendChild(b);
   }
 }
 function renderCities(){
@@ -380,11 +526,138 @@ function drawPlot(evs, st){
       tip.style.left = lx + "px"; tip.style.top = ly + "px"; tip.style.opacity = 1;
     };
     g.addEventListener("mousemove", m => show(m.clientX, m.clientY));
-    g.addEventListener("click", m => show(m.clientX, m.clientY));
+    g.addEventListener("click", () => { openEventModal(e, st); });
     g.addEventListener("mouseleave", () => tip.style.opacity = 0);
   });
 }
 function niceStep(raw){ const p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10) * p; }
+
+// event popup window
+let eventModalReturnFocus = null;
+function openEventModal(e, stayData) {
+  const modal = document.getElementById("eventModal");
+  const k = COSTS[e.city];
+  if (!modal || !k) return;
+  activePopupEvent = e;
+  popupTravelerCount = state.n;
+  document.getElementById("eventModalType").textContent = e.type || "Other";
+  document.getElementById("eventModalTitle").textContent = e.name || "Event details";
+  document.getElementById("eventModalDate").textContent = e.date && !isNaN(e.date) ? fmtDate(e.date) : "Date unavailable";
+  document.getElementById("eventModalTime").textContent = e.time || "Time unavailable";
+  document.getElementById("eventModalCity").textContent =e.city || "City unavailable";
+  document.getElementById("eventModalVenue").textContent = e.venue || "Venue unavailable";
+  eventModalReturnFocus = document.activeElement;
+  modal.hidden = false;
+  document.body.classList.add("event-modal-open");
+  renderPopupPeople();
+  updatePopupCosts();
+  document.getElementById("eventModalClose").focus();
+}
+function closeEventModal(){
+  const modal = document.getElementById("eventModal");
+  if(!modal || modal.hidden) return;
+  modal.hidden = true;
+  document.body.classList.remove("event-modal-open");
+  if(eventModalReturnFocus && typeof eventModalReturnFocus.focus === "function") eventModalReturnFocus.focus();
+}
+document.getElementById("eventModalClose").addEventListener("click", closeEventModal);
+document.getElementById("eventModal").addEventListener("click", event => {
+  if(event.target.id === "eventModal") closeEventModal();
+});
+document.addEventListener("keydown", event => {
+  if(event.key === "Escape") closeEventModal();
+});
+let eventTreemapChart = null;
+function renderEventTreemap(event, stayData, travelerCount = state.n) {
+  const container = document.getElementById("eventTreemap");
+  if (!container) return;
+  const costs = [
+    {
+      x: "Tickets",
+      y: tickets(event, travelerCount),
+      color: css("--concert")
+    },
+    {
+      x: "Hotel",
+      y: stayData.hotel,
+      color: css("--sports")
+    },
+    {
+      x: "Meals",
+      y: stayData.meals,
+      color: css("--theater")
+    },
+    {
+      x: "Parking",
+      y: stayData.parking,
+      color: css("--other")
+    }
+  ].filter(item => Number.isFinite(item.y) && item.y > 0);
+  if (eventTreemapChart) {
+    eventTreemapChart.destroy();
+    eventTreemapChart = null;
+  }
+  container.innerHTML = "";
+  if (costs.length === 0) {
+    container.textContent = "No cost breakdown available";
+    return;
+  }
+  const options = {
+    series: [{
+      data: costs.map(item => ({
+        x: item.x,
+        y: item.y
+      }))
+    }],
+    chart: {
+      type: "treemap",
+      height: 320,
+      toolbar: { show: false },
+      animations: { enabled: false }
+    },
+    colors: costs.map(item => item.color),
+    plotOptions: {
+      treemap: { distributed: true, enableShades: false }
+    },
+    dataLabels: {
+      enabled: true,
+      style: { fontSize: "14px", fontWeight: 600 },
+      formatter: function (text, opts) {
+        const item = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+        return [text, money(item.y)];
+      }
+    },
+    tooltip: { enabled: false },
+    legend: { show: false },
+    states: {
+      hover: {
+        filter: { type: "none" }
+      },
+      active: {
+        filter: { type: "none" }
+      }
+    }
+  };
+  eventTreemapChart = new ApexCharts(container, options);
+  eventTreemapChart.render();
+}
+
+
+function updatePopupCosts() {
+  if (!activePopupEvent) return;
+  const event = activePopupEvent;
+  const n = popupTravelerCount;
+  const st = stay(event.city, n);
+  const ticketCost = tickets(event, n);
+  const tripCost = ticketCost + st.total;
+  document.getElementById("eventModalTickets").textContent = money(ticketCost);
+  document.getElementById("eventModalHotel").textContent = money(st.hotel);
+  document.getElementById("eventModalMeals").textContent = money(st.meals);
+  document.getElementById("eventModalParking").textContent = money(st.parking);
+  document.getElementById("eventModalTotal").textContent = money(tripCost);
+  document.getElementById("eventModalPerPerson").textContent = "Estimate for " + (n === 1 ? "1 traveler" : n + " travelers") + " · " + money(tripCost / n) + " per person";
+  renderEventTreemap(event, st, n);
+}
 
 // ---------- Start ----------
 function showError(msg){ const s = document.getElementById("status"); s.hidden = false; s.className = "err"; s.textContent = msg; }
