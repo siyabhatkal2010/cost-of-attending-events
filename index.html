@@ -41,7 +41,13 @@
       </div>
 
       <aside class="map-panel" aria-labelledby="map-title">
-        <div class="map-head"><h2 id="map-title">Compare cities</h2><p id="mapUnit">Average trip</p></div>
+        <div class="map-head">
+          <div><h2 id="map-title">Compare cities</h2><p id="mapUnit">Average trip</p></div>
+          <div class="map-toggle" role="group" aria-label="Map view">
+            <button type="button" id="eventViewBtn" class="map-toggle-btn active" aria-pressed="true">Selected event</button>
+            <button type="button" id="costViewBtn" class="map-toggle-btn" aria-pressed="false">All city costs</button>
+          </div>
+        </div>
         <div class="map-shell">
           <div id="eventMap" role="region" aria-label="Map of average event-trip costs by city"></div>
           <div class="map-label" id="mapLabel">Totals include tickets, meals and parking.</div>
@@ -92,6 +98,7 @@
     const modeSelect = document.getElementById("travelMode");
     let EVENTS = [];
     let leafletMap;
+    let mapView = "event";
     const mapMarkers = new Map();
 
     function option(value, label) { return `<option value="${value}">${label}</option>`; }
@@ -164,26 +171,49 @@
     function renderMap(event) {
       if (!leafletMap) return;
       const n = Number(travelersSelect.value), mode = modeSelect.value, hotelClass = hotelClassSelect.value, homeCity = homeCitySelect.value;
+      mapMarkers.forEach(marker => { if (leafletMap.hasLayer(marker)) leafletMap.removeLayer(marker); });
+      mapMarkers.clear();
+      if (mapView === "cost") {
+        renderCostMap(event, n, mode, hotelClass, homeCity);
+        return;
+      }
       const matchingEvents = event ? EVENTS.filter(candidate => candidate.name === event.name) : [];
       const cities = unique(matchingEvents.map(candidate => candidate.city));
-      mapMarkers.forEach((marker, city) => {
-        if (!cities.includes(city) && leafletMap.hasLayer(marker)) leafletMap.removeLayer(marker);
-      });
       document.getElementById("mapUnit").textContent = `${cities.length} ${cities.length === 1 ? "city" : "cities"} · ${n} ${n === 1 ? "traveler" : "travelers"}`;
       cities.forEach(city => {
-        if (!mapMarkers.has(city)) {
-          const marker = L.marker(CITY_COORDS[city], { icon: cityMarkerIcon(city, 0, false), interactive: false, keyboard: false });
-          marker.addTo(leafletMap); mapMarkers.set(city, marker);
-        } else if (!leafletMap.hasLayer(mapMarkers.get(city))) {
-          mapMarkers.get(city).addTo(leafletMap);
-        }
         const cityEvents = matchingEvents.filter(candidate => candidate.city === city);
         const average = cityEvents.reduce((sum, candidate) => sum + tripCost(candidate, n, mode, hotelClass, homeCity).total, 0) / cityEvents.length;
         const active = event && city === event.city;
-        mapMarkers.get(city).setIcon(cityMarkerIcon(city, average, active));
-        mapMarkers.get(city).setZIndexOffset(active ? 1000 : 0);
+        const marker = L.marker(CITY_COORDS[city], { icon: cityMarkerIcon(city, average, active), interactive: false, keyboard: false, zIndexOffset: active ? 1000 : 0 });
+        marker.addTo(leafletMap); mapMarkers.set(city, marker);
       });
       document.getElementById("mapLabel").textContent = "Totals include tickets, meals and parking.";
+    }
+    function renderCostMap(event, n, mode, hotelClass, homeCity) {
+      const cityAverages = unique(EVENTS.map(candidate => candidate.city)).map(city => {
+        const cityEvents = EVENTS.filter(candidate => candidate.city === city);
+        const average = cityEvents.reduce((sum, candidate) => sum + tripCost(candidate, n, mode, hotelClass, homeCity).total, 0) / cityEvents.length;
+        return { city, average };
+      });
+      const values = cityAverages.map(item => item.average), min = Math.min(...values), max = Math.max(...values), range = max - min;
+      cityAverages.forEach(item => {
+        const ratio = range ? (item.average - min) / range : 0.5;
+        const radius = 12 + (item.average / max) * 16;
+        const color = ratio < .33 ? "#38c997" : ratio < .67 ? "#f0c674" : "#ff8052";
+        const marker = L.circleMarker(CITY_COORDS[item.city], { radius, color: event?.city === item.city ? "#f4ecdf" : "#78aefc", weight: 3, fillColor: color, fillOpacity: .9, interactive: false, keyboard: false });
+        marker.bindTooltip(`${item.city} · ${money(item.average)} avg.`, { permanent: true, direction: item.city === "New York" ? "left" : "right", className: "city-tooltip" });
+        marker.addTo(leafletMap); mapMarkers.set(item.city, marker);
+      });
+      document.getElementById("mapUnit").textContent = `${cityAverages.length} cities · ${n} ${n === 1 ? "traveler" : "travelers"}`;
+      document.getElementById("mapLabel").textContent = "Totals include tickets, meals and parking.";
+    }
+    function setMapView(view) {
+      mapView = view;
+      document.getElementById("eventViewBtn").classList.toggle("active", view === "event");
+      document.getElementById("costViewBtn").classList.toggle("active", view === "cost");
+      document.getElementById("eventViewBtn").setAttribute("aria-pressed", String(view === "event"));
+      document.getElementById("costViewBtn").setAttribute("aria-pressed", String(view === "cost"));
+      render();
     }
     categorySelect.addEventListener("change", () => { eventSearch.value = ""; eventDate.value = ""; updateCategoryControls(); fillEvents(); });
     eventSearch.addEventListener("input", () => fillEvents());
@@ -194,6 +224,8 @@
     homeCitySelect.addEventListener("change", render);
     modeSelect.addEventListener("change", render);
     document.getElementById("scatterTravelers").addEventListener("change", render);
+    document.getElementById("eventViewBtn").addEventListener("click", () => setMapView("event"));
+    document.getElementById("costViewBtn").addEventListener("click", () => setMapView("cost"));
     initMap();
     loadEvents().then(events => { EVENTS = events; const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; categorySelect.value = featured.type; updateCategoryControls(); fillEvents(featured.id); initCalendarHeatmap(EVENTS, chooseEvent); }).catch(error => showLoadError(document.querySelector(".planner"), error));
   </script>

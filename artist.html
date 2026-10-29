@@ -4,7 +4,34 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Artist comparison | The Real Ticket</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css?v=6">
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>#artistEventMap{width:100%;height:420px;min-height:320px;border-radius:12px}.artist-map-panel{position:static;margin:28px 0}.artist-map-panel .map-shell{min-height:420px}.artist-map-legend{margin-top:12px}</style>
+  <style>
+    .sm-wrap { overflow-x: auto; border-top: 1px solid var(--ink); }
+    .sm-grid { min-width: 760px; --cols: minmax(170px, 1.3fr) repeat(4, minmax(120px, 1fr)) minmax(80px, .6fr); }
+    .sm-head, .sm-row { display: grid; grid-template-columns: var(--cols); gap: 18px; align-items: center; }
+    .sm-head { padding: 14px 0 10px; border-bottom: 1px solid var(--ink); align-items: end; }
+    .sm-head > div { font-size: 12px; color: var(--ink-3); }
+    .sm-head strong { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); }
+    .sm-head strong i { width: 10px; height: 10px; display: inline-block; }
+    .sm-row { padding: 12px 0; border-bottom: 1px solid var(--rule); }
+    .sm-event strong { display: block; font: 650 18px/1.15 var(--serif); }
+    .sm-event span { display: block; color: var(--ink-2); font-size: 12px; }
+    .sm-event em { display: block; color: var(--ink-3); font-size: 12px; font-style: normal; }
+    .sm-cell { display: flex; flex-direction: column; gap: 5px; }
+    .sm-track { height: 12px; background: var(--sand); }
+    .sm-fill { display: block; height: 100%; }
+    .sm-val { font-size: 13px; font-weight: 600; }
+    .sm-low { color: var(--green); }
+    .sm-low::before { content: "▼ "; font-size: 10px; }
+    .sm-total { text-align: right; font: 650 20px/1 var(--serif); }
+    .sm-head .sm-total { font: inherit; }
+    .sm-ticket { background: var(--blue); }
+    .sm-hotel  { background: var(--orange); }
+    .sm-meals  { background: var(--green); }
+    .sm-local  { background: var(--purple); }
+  </style>
 </head>
 <body>
   <div id="header"></div>
@@ -14,33 +41,181 @@
       <label class="artist-picker field"><span>Choose another performer</span><select id="artistPicker"></select></label>
     </div>
     <section class="stats" id="artistStats"></section>
+    <section class="map-panel artist-map-panel" aria-labelledby="artistMapTitle">
+      <div class="map-head">
+        <h2 id="artistMapTitle">Tour stops by trip cost</h2>
+        <p>Marker size and color compare estimated costs across this artist’s event cities.</p>
+      </div>
+      <div class="map-shell">
+        <div id="artistEventMap" role="region" aria-label="Map of this artist's event cities and proportional trip costs"></div>
+        <div class="map-label" id="artistMapLabel">Loading event locations…</div>
+      </div>
+      <div class="scatter-legend artist-map-legend">
+        <span><i style="background:#38f545"></i>Lower cost</span>
+        <span><i style="background:#fa9f20"></i>Mid-range cost</span>
+        <span><i style="background:#f71e1e"></i>Higher cost</span>
+      </div>
+    </section>
     <section aria-labelledby="comparisonTitle">
-      <div class="compare-head"><h2 id="comparisonTitle">Cost by city</h2><div class="field-row"><label class="field"><span>Travelers</span><select id="travelers"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label><label class="field"><span>Getting around</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option></select></label></div></div>
+      <div class="compare-head"><h2 id="comparisonTitle">Cost by event</h2><div class="field-row"><label class="field"><span>Travelers</span><select id="travelers"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label><label class="field"><span>Getting around</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option></select></label></div></div>
       <div class="city-comparison" id="cityComparison" aria-live="polite"></div>
-      <p class="data-note">Each city uses the lowest-priced sampled event for this performer. Estimates include one hotel night, one inexpensive meal per traveler and either parking or round-trip transit.</p>
+      <p class="data-note">Each row is one sampled event for this performer, in date order. Every cost category has its own panel with its own scale starting at $0, so compare bars within a column. ▼ marks the lowest value in a column. Hotel, meal and parking/transit costs are city averages, so events in the same city share those values; only tickets vary within a city.</p>
     </section>
   </main>
   <div id="footer"></div>
-  <script src="site.js?v=4"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="site.js?v=5"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("artists"); document.getElementById("footer").innerHTML = siteFooter();
     const picker = document.getElementById("artistPicker"), comparison = document.getElementById("cityComparison");
     let EVENTS = [], currentArtist = "";
+    // basically copied from index.html's proportional cost map
+    // this one is specific to the performer/artist tho
+    let artistMap = null;
+    const artistMapMarkers = new Map();
+    function initArtistMap() {
+      const label = document.getElementById("artistMapLabel");
+      if (!window.L) {
+        label.textContent = "The interactive map library did not load. The city comparison is still available.";
+        return;
+      }
+      if (artistMap) return;
+      artistMap = L.map("artistEventMap", {
+        center: [38.4, -96.8], zoom: 4, minZoom: 3, maxZoom: 12, scrollWheelZoom: false
+      });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(artistMap);
+    }
+    function renderArtistMap(artistEvents, n, mode) {
+      if (!artistMap) return;
+      const byCity = unique(artistEvents.map(e => e.city))
+        .filter(city => CITY_COORDS[city] && CITY_COSTS[city])
+        .map(city => {
+          const events = artistEvents.filter(e => e.city === city);
+          const totals = events.map(e => tripCost(e, n, mode).total);
+          return {
+            city,
+            events,
+            count: totals.length,
+            average: totals.reduce((sum, value) => sum + value, 0) / totals.length
+          };
+        }).filter(city => city.count > 0);
+      if (!byCity.length) {
+        document.getElementById("artistMapLabel").textContent = "No mapped event locations are available for this artist.";
+        artistMapMarkers.forEach(marker => artistMap.removeLayer(marker));
+        artistMapMarkers.clear();
+        return;
+      }
+      const min = Math.min(...byCity.map(city => city.average));
+      const max = Math.max(...byCity.map(city => city.average));
+      const range = max - min;
+      const visibleCities = new Set(byCity.map(city => city.city));
+      artistMapMarkers.forEach((marker, city) => {
+        if (!visibleCities.has(city)) {
+          artistMap.removeLayer(marker);
+          artistMapMarkers.delete(city);
+        }
+      });
+      byCity.forEach(cityData => {
+        const { city, events, average } = cityData;
+        const relativeCost = max > 0 ? average / max : 0;
+        const radius = max > 0 ? Math.max(6, 26 * Math.sqrt(relativeCost)) : 6;
+        const ratio = range > 0 ? (average - min) / range : 0;
+        const color = ratio < 0.33 ? "#38f545" : ratio < 0.67 ? "#fa9f20" : "#f71e1e";
+        const eventList = events.slice().sort((a, b) => a.date - b.date);
+
+        let marker = artistMapMarkers.get(city);
+
+        if (!marker) {
+          marker = L.circleMarker(CITY_COORDS[city], { interactive: false });
+          marker.addTo(artistMap);
+          artistMapMarkers.set(city, marker);
+
+          marker.bindTooltip(city, {
+            permanent: true,
+            direction: "top",
+            offset: [0, -8],
+            className: "city-tooltip"
+          });
+        }
+
+        marker.setRadius(radius);
+        marker.setStyle({
+          color: "#f4ecdf",
+          weight: 2,
+          fillColor: color,
+          fillOpacity: 0.9
+        });
+      });
+      const cheapest = byCity.reduce((best, city) => city.average < best.average ? city : best, byCity[0]);
+      document.getElementById("artistMapLabel").innerHTML =
+        `<strong>${byCity.length} event ${byCity.length === 1 ? "city" : "cities"} · Lowest average: ${cheapest.city} (${money(cheapest.average)})</strong>` +
+        `Marker size reflects average estimated trip cost for ${n} ${n === 1 ? "traveler" : "travelers"}.`;
+    }
+
+    // small multiples. https://www.juiceanalytics.com/writing/better-know-visualization-small-multiples
+    // stacked bar chart was not the move. was a bit diffuclt to compare cost categories between events
+    // One row per event (city + venue + date); one panel (column) per cost category.
+    // Each panel has its own $0-based scale, so bars are compared within a column.
+    function renderEventChart(artistEvents, n, mode) {
+      const data = artistEvents.slice().sort((a, b) => a.date - b.date)
+        .map(event => ({ event, cost: tripCost(event, n, mode) }));
+      if (!data.length) {
+        comparison.innerHTML = `<p class="empty">No events are available for this performer.</p>`;
+        return;
+      }
+
+      const categories = [
+        { key: "tickets",     label: "Tickets",                                 cls: "sm-ticket" },
+        { key: "hotel",       label: "Hotel",                                   cls: "sm-hotel" },
+        { key: "meals",       label: "Meals",                                   cls: "sm-meals" },
+        { key: "localTravel", label: mode === "drive" ? "Parking" : "Transit",  cls: "sm-local" }
+      ];
+
+      // per-category scale (max) and lowest value; lowest is only flagged when values differ
+      const stats = {};
+      categories.forEach(c => {
+        const values = data.map(d => d.cost[c.key]);
+        const max = Math.max(...values), min = Math.min(...values);
+        stats[c.key] = { max: max > 0 ? max : 1, min, flagLow: max !== min };
+      });
+
+      const head =
+        `<div class="sm-head" role="row"><div>Event</div>` +
+        categories.map(c => `<div role="columnheader"><strong><i class="${c.cls}"></i>${c.label}</strong>scale $0 – ${money(stats[c.key].max)}</div>`).join("") +
+        `<div class="sm-total" role="columnheader"><strong style="justify-content:flex-end">Total</strong>${n} ${n === 1 ? "person" : "people"}</div></div>`;
+
+      const rows = data.map(({ event, cost }) => {
+        const cells = categories.map(c => {
+          const value = cost[c.key], s = stats[c.key];
+          const low = s.flagLow && value === s.min;
+          return `<div class="sm-cell" role="cell"><div class="sm-track"><i class="sm-fill ${c.cls}" style="width:${value / s.max * 100}%"></i></div><span class="sm-val${low ? " sm-low" : ""}"${low ? ` title="Lowest ${c.label.toLowerCase()} cost"` : ""}>${money(value)}</span></div>`;
+        }).join("");
+        return `<div class="sm-row" role="row"><div class="sm-event" role="rowheader"><strong>${event.city}</strong><span>${event.venue}</span><em>${dateLabel(event.date)}</em></div>${cells}<div class="sm-total" role="cell">${money(cost.total)}</div></div>`;
+      }).join("");
+
+      comparison.innerHTML = `<div class="sm-wrap"><div class="sm-grid" role="table" aria-label="Cost by event and category">${head}${rows}</div></div>`;
+    }
+
     function render() {
       const n = Number(document.getElementById("travelers").value), mode = document.getElementById("travelMode").value;
       const artistEvents = EVENTS.filter(e => e.performer === currentArtist);
       const cheapestByCity = unique(artistEvents.map(e => e.city)).map(city => artistEvents.filter(e => e.city === city).sort((a,b) => a.ticket - b.ticket)[0]);
       const rows = cheapestByCity.map(event => ({ event, cost: tripCost(event, n, mode) })).sort((a,b) => a.cost.total - b.cost.total);
-      const max = Math.max(...rows.map(row => row.cost.total));
+      const max = Math.max(1, ...rows.map(row => row.cost.total));
       document.getElementById("artistName").textContent = currentArtist;
       document.title = `${currentArtist} cost guide | The Real Ticket`;
       document.getElementById("artistIntro").textContent = rows.length > 1 ? `Where is the best-value city to see ${currentArtist}? Compare the full price of the night.` : `A first look at the full cost of seeing ${currentArtist} in the available sample city.`;
       const totals = rows.map(row => row.cost.total);
       document.getElementById("artistStats").innerHTML = `<div class="stat"><div class="label">Cities in sample</div><div class="value">${rows.length}</div></div><div class="stat"><div class="label">Best-value stop</div><div class="value">${rows[0].event.city}</div></div><div class="stat"><div class="label">Potential savings</div><div class="value">${money(Math.max(...totals) - Math.min(...totals))}</div></div>`;
-      comparison.innerHTML = rows.map(({event,cost}, index) => `<article class="compare-row"><div><p class="eyebrow">${index === 0 ? "Best value" : `Stop ${index + 1}`}</p><h3>${event.city}</h3><p class="event-meta">${dateLabel(event.date)} · ${event.venue}</p></div><div><div class="bar-track" aria-label="${money(cost.tickets)} tickets and ${money(cost.total-cost.tickets)} local costs"><i class="bar-ticket" style="width:${cost.tickets/max*100}%"></i><i class="bar-stay" style="left:${cost.tickets/max*100}%;width:${(cost.total-cost.tickets)/max*100}%"></i></div><div class="bar-legend"><span><i style="background:var(--blue)"></i>Tickets ${money(cost.tickets)}</span><span><i style="background:var(--orange)"></i>Stay + local ${money(cost.total-cost.tickets)}</span></div></div><div class="price-stack"><strong>${money(cost.total)}</strong><span>estimated for ${n} ${n === 1 ? "person" : "people"}</span></div></article>`).join("");
+      renderArtistMap(artistEvents, n, mode);
+      renderEventChart(artistEvents, n, mode);
     }
     picker.addEventListener("change", () => { location.search = `?artist=${encodeURIComponent(picker.value)}`; });
     document.getElementById("travelers").addEventListener("change", render); document.getElementById("travelMode").addEventListener("change", render);
+    initArtistMap();
     loadEvents().then(events => {
       EVENTS = events; const performers = unique(events.map(e => e.performer));
       const requested = new URLSearchParams(location.search).get("artist"); currentArtist = performers.includes(requested) ? requested : (performers.includes("Olivia Rodrigo") ? "Olivia Rodrigo" : performers[0]);

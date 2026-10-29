@@ -56,17 +56,6 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .city .split{grid-column:1/-1;font-size:13px;color:var(--ink-2);margin-top:6px}
 .side{position:sticky;top:20px}
 @media (max-width:860px){.side{position:static}}
-.deals{margin-top:36px}
-.deals h3{margin:0 0 4px;font-size:22px;font-weight:700;font-family:var(--serif);padding:0 10px}
-.deals ol{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
-.deals button{display:grid;grid-template-columns:1fr auto;gap:0 12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule);padding:10px;cursor:pointer}
-.deals button:hover{background:var(--paper)}
-.deals .dn{font-weight:600;font-size:15px;line-height:1.3;display:flex;align-items:center;gap:7px;min-width:0}
-.deals .dn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.deals .dot{width:8px;height:8px;border-radius:50%;flex:none}
-.deals .dp{font-weight:700;font-size:18px;font-family:var(--serif);font-feature-settings:"tnum"}
-.deals .dm{grid-column:1/-1;font-size:12px;color:var(--ink-3);padding-left:15px}
-.key{display:flex;gap:18px;font-size:13px;color:var(--ink-2);margin:12px 10px 0}
 .key span{display:inline-flex;align-items:center;gap:6px}
 .key b{display:inline-block;width:14px;height:8px;border-radius:2px}
 
@@ -83,7 +72,26 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .costs .v{font-size:28px;font-weight:700;font-family:var(--serif);line-height:1.1;font-feature-settings:"tnum"}
 .costs .u{font-size:13px;color:var(--ink-3)}
 .tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
-.types{display:flex;flex-wrap:wrap;gap:6px}
+.type-viz-row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.35fr);gap:16px;margin:24px 0 30px}
+.type-pie,.price-trend{min-width:0;margin:0;padding:20px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper)}
+.type-pie h3,.price-trend h3{margin:0 0 14px;font:600 22px/1.2 var(--serif)}
+.type-pie-content{display:grid;grid-template-columns:minmax(100px,160px) minmax(0,1fr);align-items:center;gap:14px}
+.type-pie svg{display:block;width:100%;height:auto;overflow:visible}
+.type-pie-slice{cursor:pointer;stroke:var(--paper);stroke-width:2;transition:opacity .15s}
+.type-pie-slice:hover,.type-pie-slice:focus{opacity:.78;outline:none;stroke:var(--ink);stroke-width:3}
+.type-pie-legend{display:grid;gap:8px}
+.type-pie-legend button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:5px 0;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;cursor:pointer;color:var(--ink);font-size:13px}
+.type-pie-legend button:hover{color:var(--select)}
+.type-pie-name{display:inline-flex;align-items:center;gap:7px}
+.type-pie-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.type-pie-legend small{color:var(--ink-2);white-space:nowrap}
+.price-trend-note{margin:-6px 0 10px;color:var(--ink-2);font-size:12px}
+#priceTrend{display:block;width:100%;height:auto;overflow:visible}
+.trend-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;color:var(--ink-2);font-size:12px}
+.trend-legend span{display:inline-flex;align-items:center;gap:6px}
+.trend-legend i{width:9px;height:9px;border-radius:50%}
+@media(max-width:900px){.type-viz-row{grid-template-columns:1fr}.type-pie-content{grid-template-columns:minmax(130px,190px) minmax(0,1fr)}}
+@media(max-width:520px){.type-pie-content{grid-template-columns:1fr}.type-pie-content svg{max-width:220px;margin:auto}}.types{display:flex;flex-wrap:wrap;gap:6px}
 .types button{border:1px solid var(--rule);background:var(--paper);border-radius:var(--r);padding:5px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-size:14px}
 .types button:hover{border-color:var(--ink-3)}
 .types button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--cream)}
@@ -105,16 +113,67 @@ h1{margin:0;font-size:clamp(40px,6vw,64px);line-height:.95;font-weight:800;font-
 .err{background:#3b1e1a;color:#ffc4b5;border-radius:var(--r);padding:12px 14px}
 #picker{display:none;margin-top:12px}
 #picker label{display:block;margin:8px 0}
+
+/* Event popup window */
+.event-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgb(0 0 0 / 72%)}
+.event-modal[hidden]{display:none}
+.event-panel{position:relative;width:min(720px,100%);max-height:88vh;overflow-y:auto;padding:clamp(22px,4vw,36px);background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:var(--r);box-shadow:0 24px 80px rgb(0 0 0 / 35%)}
+.event-close{position:absolute;top:14px;right:14px;display:grid;place-items:center;width:38px;height:38px;border:1px solid var(--rule);border-radius:var(--r);background:transparent;color:var(--ink);cursor:pointer;font-size:24px;line-height:1}
+.event-close:hover{background:var(--sand)}
+.event-heading{padding-right:28px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.event-type,.event-section-label{color:var(--ink-2);text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:600}
+.event-panel h2{margin:10px 0 8px;font:700 clamp(28px,5vw,42px)/1.08 var(--serif);letter-spacing:-.02em}
+.event-meta{margin:0;color:var(--ink-2);font-size:14px;line-height:1.5}
+.event-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin-top:20px;border-top:1px solid var(--rule);border-left:1px solid var(--rule)}
+.event-fact{min-width:0;padding:13px 15px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.event-fact-label{display:block;margin-bottom:6px;color:var(--ink-2);font-size:10px;font-weight:600;letter-spacing:.09em}
+.event-fact strong{display:block;font-size:14px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.event-fact-venue{grid-column:1/-1}
+.event-trip{margin-top:24px}
+.event-trip-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px;background:var(--select-wash);border-left:3px solid var(--select)}
+.event-trip-heading h3{margin:6px 0 0;font:600 20px/1.2 var(--serif)}
+.event-trip-total{min-width:0;text-align:right}
+.event-trip-total strong{display:block;font-size:clamp(25px,4vw,32px);line-height:1.2;letter-spacing:-.02em;overflow-wrap:anywhere}
+.event-trip-total span{display:block;margin-top:5px;color:var(--ink-2);font-size:12px;line-height:1.5}
+.event-travelers{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0}
+.event-travelers>span{color:var(--ink-2);font-size:13px}
+.event-costs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--rule);border-left:1px solid var(--rule)}
+.event-costs>div{min-width:0;padding:15px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.event-costs small{display:block;margin-bottom:6px;color:var(--ink-2);font-size:12px}
+.event-costs strong{font-size:21px;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
+.event-total{margin-top:20px;padding:18px;background:var(--select-wash);border-left:3px solid var(--select)}
+.event-total strong{display:block;font-size:30px}
+.event-chart{display:flex;height:12px;overflow:hidden;margin-top:14px;background:var(--sand);border-radius:var(--r)}
+.event-chart span{display:block;height:100%}
+.event-chart-key{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px;color:var(--ink-2);font-size:12px}
+.event-chart-key span{display:inline-flex;align-items:center;gap:6px}
+.event-chart-key i{width:9px;height:9px;border-radius:2px}
+.event-visualization{margin-top:24px;padding-top:18px;border-top:1px solid var(--rule)}
+.event-visualization h3{margin:0 0 6px;color:var(--ink);font-family:var(--serif);font-size:1.25rem}
+.event-viz-note{margin:0 0 14px;color:var(--ink-2);font-size:.85rem;line-height:1.5}
+#eventTreemap{width:100%;min-height:280px}
+#eventTreemap .apexcharts-tooltip{color:#151b20}
+body.event-modal-open{overflow:hidden}
+
+@media(max-width:480px){
+.event-modal{padding:10px}
+.event-panel{padding:22px 16px;max-height:92vh}
+.event-fact{padding:12px}
+.event-trip-heading{flex-direction:column;gap:14px;margin-top:24px}
+.event-trip-total{text-align:left}
+.event-travelers{align-items:flex-start;flex-direction:column}
+.event-costs>div{padding:12px}
+.event-costs strong{font-size:18px}
+}
+
 @media (prefers-reduced-motion:no-preference){.city .bar i{transition:width .35s ease}}
 /* Option D: serif for headings and city names, Libre Franklin for text and numbers */
 h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
 .c-name{font-weight:700;letter-spacing:-.02em;line-height:.95}
 .city .nm{font-weight:600;font-size:25px}
-.city .tot,.costs .v,.deals .dp{font-family:var(--sans);font-weight:600;letter-spacing:-.01em}
+.city .tot,.costs .v{font-family:var(--sans);font-weight:600;letter-spacing:-.01em}
 .city .tot{font-size:22px}
 .costs .v{font-size:24px}
-.deals .dp{font-size:16px}
-.deals h3{font-weight:600}
 </style>
 </head>
 <body>
@@ -150,24 +209,77 @@ h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
       <div id="cities"></div>
       <div class="key"><span><b style="background:var(--ink)"></b>Avg. tickets</span><span><b style="background:var(--stay)"></b>Hotel, meals, parking</span></div>
     </nav>
-    <section class="deals" aria-labelledby="dealsH">
-      <h3 id="dealsH">Cheapest trips in any city</h3>
-      <ol id="deals"></ol>
-    </section>
     </div>
     <section id="detail" aria-live="polite"></section>
   </div>
+
+  <div class="layout" id="app" hidden></div>
 </main>
+
+<!-- Popup window -->
+<section class="event-modal" id="eventModal" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle" hidden>
+  <div class="event-panel" role="document">
+    <button class="event-close" id="eventModalClose" type="button" aria-label="Close event details">x</button>
+    <header class="event-heading">
+      <div class="event-type" id="eventModalType"></div>
+      <h2 id="eventModalTitle">Event name</h2>
+    </header>
+    <section class="event-facts" aria-label="Event information">
+      <div class="event-fact">
+        <span class="event-fact-label">DATE & TIME</span>
+        <strong id="eventModalDate">—</strong>
+        <strong id="eventModalTime">—</strong>
+      </div>
+      <div class="event-fact">
+        <span class="event-fact-label">CITY</span>
+        <strong id="eventModalCity">—</strong>
+      </div>
+      <div class="event-fact event-fact-venue">
+        <span class="event-fact-label">VENUE</span>
+        <strong id="eventModalVenue">—</strong>
+      </div>
+    </section>
+    <section class="event-trip" aria-label="Trip estimate">
+      <div class="event-travelers">
+        <span id="popupPartyLbl">Travelers</span>
+        <div class="seg" id="popupPpl" role="group" aria-labelledby="popupPartyLbl"></div>
+      </div>
+      <div class="event-costs" aria-label="Estimated cost breakdown">
+        <div><small>Tickets</small><strong id="eventModalTickets">—</strong></div>
+        <div><small>Hotel</small><strong id="eventModalHotel">—</strong></div>
+        <div><small>Meals</small><strong id="eventModalMeals">—</strong></div>
+        <div><small>Parking</small><strong id="eventModalParking">—</strong></div>
+      </div>
+      <div class="event-trip-heading">
+        <div>
+          <span class="event-section-label">YOUR TRIP</span>
+          <h3>Estimated total</h3>
+        </div>
+        <div class="event-trip-total">
+          <strong id="eventModalTotal">—</strong>
+          <span id="eventModalPerPerson"></span>
+        </div>
+      </div>
+    </section>
+    <section class="event-visualization">
+      <h3>Where your money goes</h3>
+      <p class="event-viz-note">See how the estimated trip cost is divided across tickets, hotel, meals and parking.</p>
+      <div id="eventTreemap"></div>
+    </section>
+  </div>
+</section>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@8.5.0/dist/apexcharts.min.js"></script>
 <script>
 // ---------- Config: file locations and the column names this page reads ----------
 const CONFIG = {
   eventsFile: "data/major_event_ticket_prices.csv",
   costsFile: "data/city_costs.xlsx",
   ev: {
-    city: "pilot_city", name: "event_name", type: "event_type", date: "event_date",
+    city: "pilot_city", name: "event_name", type: "event_type", date: "event_date", time: "event_time",
     venue: "canonical_major_venue", venueFallback: "venue_name",
     priceForTwo: "last_valid_ticket_cost_for_two", priceForTwoFallback: "current_ticket_cost_for_two"
   },
@@ -188,6 +300,8 @@ const short = s => s.length > CONFIG.nameMaxLength ? s.slice(0, CONFIG.nameMaxLe
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 let EVENTS = [], COSTS = {}, TYPES = [], state = { city:null, type:"all", sort:"trip", n:1 };
+let popupTravelerCount = state.n;
+let activePopupEvent = null;
 
 // ---------- Loading ----------
 async function loadFromUrls(){
@@ -197,6 +311,20 @@ async function loadFromUrls(){
   ]);
   init(evText, coBuf);
 }
+const fmtTime = t => {
+  if (t == null || String(t).trim() === "") return "";
+  const match = String(t).trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return "";
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return "";
+  const d = new Date(2000, 0, 1, hours, minutes);
+  return d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+};
 function parseEvents(text){
   const rows = Papa.parse(text, { header:true, skipEmptyLines:true, dynamicTyping:false }).data;
   const c = CONFIG.ev;
@@ -205,7 +333,7 @@ function parseEvents(text){
     if(!(p2 > 0)) p2 = parseFloat(r[c.priceForTwoFallback]);
     const d = new Date(r[c.date] + "T00:00:00");
     return { city:(r[c.city]||"").trim(), name:(r[c.name]||"").trim(), type:norm(r[c.type]) || "other",
-             date:d, venue:(r[c.venue] || r[c.venueFallback] || "").trim(), perPerson: p2 > 0 ? p2/2 : NaN };
+             date:d, time: fmtTime(r[c.time]), venue:(r[c.venue] || r[c.venueFallback] || "").trim(), perPerson: p2 > 0 ? p2/2 : NaN };
   }).filter(e => e.city && e.name && isFinite(e.perPerson) && !isNaN(e.date));
 }
 function parseCosts(buf){
@@ -249,12 +377,12 @@ function init(evText, coBuf){
 }
 
 // ---------- Cost model ----------
-function stay(city){
-  const k = COSTS[city], rooms = Math.ceil(state.n / CONFIG.peoplePerRoom);
-  const hotel = rooms * k.hotel, meals = state.n * k.meal, parking = k.parking;
+function stay(city, travelerCount = state.n){
+  const k = COSTS[city], rooms = Math.ceil(travelerCount / CONFIG.peoplePerRoom);
+  const hotel = rooms * k.hotel, meals = travelerCount * k.meal, parking = k.parking;
   return { rooms, hotel, meals, parking, total: hotel + meals + parking };
 }
-const tickets = e => e.perPerson * state.n;
+const tickets = (e, travelerCount = state.n) => e.perPerson * travelerCount;
 const typeColor = t => css(TYPE_COLOR[t] || "--other");
 const forN = () => state.n === 1 ? "1 person" : state.n + " people";
 function citySummary(c){
@@ -264,25 +392,32 @@ function citySummary(c){
 const cityList = () => Object.keys(COSTS).sort((a,b) => citySummary(a).trip - citySummary(b).trip);
 
 // ---------- Rendering ----------
-function render(){ renderPeople(); renderCities(); renderDeals(); renderDetail(); }
-function renderDeals(){
-  const all = EVENTS.map(e => ({ e, trip: tickets(e) + stay(e.city).total })).sort((a,b) => a.trip - b.trip).slice(0, 6);
-  const el = document.getElementById("deals"); el.innerHTML = "";
-  all.forEach(({e, trip}) => {
-    const li = document.createElement("li"), b = document.createElement("button");
-    b.innerHTML = `<span class="dn"><i class="dot" style="background:${typeColor(e.type)}"></i><span>${esc(e.name)}</span></span><span class="dp">${money(trip)}</span>
-      <span class="dm">${esc(e.city)}, ${e.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})}, tickets from about ${money(e.perPerson)}</span>`;
-    b.title = e.name;
-    b.onclick = () => { state.city = e.city; state.type = "all"; state.sort = "trip"; render(); document.getElementById("detail").scrollIntoView({behavior:"smooth", block:"start"}); };
-    li.appendChild(b); el.appendChild(li);
-  });
-}
+function render(){ renderPeople(); renderCities(); renderDetail(); }
 function renderPeople(){
   const el = document.getElementById("ppl"); el.innerHTML = "";
   for(let n=1; n<=CONFIG.maxTravelers; n++){
     const b = document.createElement("button"); b.textContent = n;
     b.setAttribute("aria-pressed", n===state.n); b.setAttribute("aria-label", n === 1 ? "1 traveler" : n + " travelers");
-    b.onclick = () => { state.n = n; render(); }; el.appendChild(b);
+    b.onclick = () => { state.n = n; popupTravelerCount = state.n; render(); }; el.appendChild(b);
+  }
+}
+function renderPopupPeople() {
+  const el = document.getElementById("popupPpl");
+  el.innerHTML = "";
+  for (let n = 1; n <= CONFIG.maxTravelers; n++) {
+    const b = document.createElement("button");
+    b.textContent = n;
+    b.setAttribute("aria-pressed", n === popupTravelerCount);
+    b.setAttribute(
+      "aria-label",
+      n === 1 ? "1 traveler" : n + " travelers"
+    );
+    b.onclick = () => {
+      popupTravelerCount = n;
+      renderPopupPeople();
+      updatePopupCosts();
+    };
+    el.appendChild(b);
   }
 }
 function renderCities(){
@@ -319,6 +454,18 @@ function renderDetail(){
       <li><div class="k">Parking, avg. per day</div><div class="v">${money(k.parking)}</div></li>
       <li><div class="k">Est. stay for ${forN()}</div><div class="v">${money(st.total)}</div><div class="u">${st.rooms} room${st.rooms>1?"s":""}, meals, parking</div></li>
     </ul>
+    <div class="type-viz-row">
+      <section class="type-pie" aria-labelledby="typePieTitle">
+        <h3 id="typePieTitle">Events by type</h3>
+        <div class="type-pie-content"><div id="typePieChart"></div><div class="type-pie-legend" id="typePieLegend"></div></div>
+      </section>
+      <section class="price-trend" aria-labelledby="priceTrendTitle">
+        <h3 id="priceTrendTitle">Ticket price over time</h3>
+        <p class="price-trend-note">Average listed ticket price per event date</p>
+        <svg id="priceTrend" role="img" aria-label="Average ticket price over time by event type"></svg>
+        <div class="trend-legend" id="trendLegend"></div>
+      </section>
+    </div>
     <div class="tools">
       <div class="types" id="types" role="group" aria-label="Filter by event type"></div>
       <label class="sort">Sort by <select id="sort"><option value="trip">Trip cost</option><option value="date">Date</option></select></label>
@@ -329,6 +476,8 @@ function renderDetail(){
     </div>
     <div id="plotwrap"><svg id="plot" role="img" aria-label="Ticket cost and total trip cost for each event in ${esc(c)}"></svg><div id="tip"></div></div>
     <p class="note">All costs are estimates. Ticket prices are the lowest resale listings on SeatData when the data was last pulled, and they change daily. Hotel, meal and parking costs are city averages.</p>`;
+  renderTypePie(typesHere, cityEvents);
+  renderPriceTrend(typesHere, cityEvents);
   const tw = document.getElementById("types");
   [["all","All events",null], ...typesHere.map(t => [t, cap(t), typeColor(t)])].forEach(([v,l,col]) => {
     const b = document.createElement("button"); b.setAttribute("aria-pressed", state.type===v);
@@ -337,6 +486,66 @@ function renderDetail(){
   });
   const sel = document.getElementById("sort"); sel.value = state.sort; sel.onchange = () => { state.sort = sel.value; renderDetail(); };
   drawPlot(evs, st);
+}
+function renderPriceTrend(typesHere, cityEvents){
+  const svg = document.getElementById("priceTrend"), legend = document.getElementById("trendLegend");
+  const grouped = typesHere.map(type => {
+    const byDay = new Map();
+    cityEvents.filter(e => e.type === type).forEach(e => {
+      const day = new Date(e.date.getFullYear(), e.date.getMonth(), e.date.getDate()).getTime();
+      if(!byDay.has(day)) byDay.set(day, []);
+      byDay.get(day).push(e.perPerson);
+    });
+    return {type, points:[...byDay].map(([day,prices]) => ({day, price:prices.reduce((a,b)=>a+b,0)/prices.length, count:prices.length})).sort((a,b)=>a.day-b.day)};
+  }).filter(series => series.points.length);
+  const all = grouped.flatMap(series => series.points);
+  if(!all.length){ svg.innerHTML = ""; legend.innerHTML = ""; return; }
+  const W=640,H=280,L=54,R=18,T=12,B=48,plotW=W-L-R,plotH=H-T-B;
+  const minDay=Math.min(...all.map(p=>p.day)), maxDay=Math.max(...all.map(p=>p.day));
+  const x=day => L + (maxDay===minDay ? .5 : (day-minDay)/(maxDay-minDay))*plotW;
+  const maxPrice=Math.max(...all.map(p=>p.price)), step=niceStep(maxPrice/4), top=Math.ceil(maxPrice/step)*step;
+  const y=price => T + plotH - price/top*plotH;
+  let content="";
+  for(let value=0;value<=top;value+=step){
+    const yy=y(value);
+    content += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="${css("--rule")}" stroke-dasharray="2 4"/><text x="${L-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css("--ink-3")}">${money(value)}</text>`;
+  }
+  grouped.forEach(series => {
+    const color=typeColor(series.type), pts=series.points;
+    if(pts.length>1) content += `<path d="${pts.map((p,i)=>`${i?"L":"M"} ${x(p.day)} ${y(p.price)}`).join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    pts.forEach(p => {
+      const date=new Date(p.day).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+      content += `<circle cx="${x(p.day)}" cy="${y(p.price)}" r="5" fill="${color}" stroke="${css("--paper")}" stroke-width="2"><title>${esc(`${cap(series.type)} · ${date}: ${money(p.price)} average${p.count>1?` across ${p.count} events`:""}`)}</title></circle>`;
+    });
+  });
+  const first=new Date(minDay).toLocaleDateString("en-US",{month:"short",day:"numeric"}), last=new Date(maxDay).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  content += `<text x="${L}" y="${H-14}" text-anchor="start" font-size="11" fill="${css("--ink-3")}">${first}</text><text x="${W-R}" y="${H-14}" text-anchor="end" font-size="11" fill="${css("--ink-3")}">${last}</text>`;
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.innerHTML=content;
+  legend.innerHTML=grouped.map(series=>`<span><i style="background:${typeColor(series.type)}"></i>${esc(cap(series.type))}</span>`).join("");
+}
+function renderTypePie(typesHere, cityEvents){
+  const chart = document.getElementById("typePieChart"), legend = document.getElementById("typePieLegend");
+  const counts = typesHere.map(type => ({ type, count: cityEvents.filter(e => e.type === type).length }));
+  const total = counts.reduce((sum, item) => sum + item.count, 0);
+  const cx = 100, cy = 100, r = 88;
+  let angle = -Math.PI / 2;
+  const point = a => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const paths = counts.map(({type,count}) => {
+    const start = angle, end = angle + count / total * Math.PI * 2; angle = end;
+    const [x1,y1] = point(start), [x2,y2] = point(end);
+    const d = count === total ? `M ${cx} ${cy-r} A ${r} ${r} 0 1 1 ${cx} ${cy+r} A ${r} ${r} 0 1 1 ${cx} ${cy-r} Z`
+      : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${end-start > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`;
+    const color = typeColor(type), pct = Math.round(count / total * 100);
+    return {type,count,pct,color,d};
+  });
+  chart.innerHTML = `<svg viewBox="0 0 200 200" role="img" aria-label="${esc(cityEvents.length + " events by type in " + state.city)}">${paths.map(p => `<path class="type-pie-slice" d="${p.d}" fill="${p.color}" tabindex="0" role="button" aria-label="${esc(cap(p.type) + ": " + p.count + " events, " + p.pct + " percent")}" data-type="${esc(p.type)}"></path>`).join("")}</svg>`;
+  legend.innerHTML = paths.map(p => `<button type="button" data-type="${esc(p.type)}"><span class="type-pie-name"><i class="type-pie-dot" style="background:${p.color}"></i>${esc(cap(p.type))}</span><small>${p.count} · ${p.pct}%</small></button>`).join("");
+  const choose = type => { state.type = type; renderDetail(); };
+  chart.querySelectorAll(".type-pie-slice").forEach(slice => {
+    slice.addEventListener("click", () => choose(slice.dataset.type));
+    slice.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); choose(slice.dataset.type); } });
+  });
+  legend.querySelectorAll("button").forEach(button => button.addEventListener("click", () => choose(button.dataset.type)));
 }
 function drawPlot(evs, st){
   const svg = document.getElementById("plot"), tip = document.getElementById("tip"), NS = "http://www.w3.org/2000/svg";
@@ -380,11 +589,138 @@ function drawPlot(evs, st){
       tip.style.left = lx + "px"; tip.style.top = ly + "px"; tip.style.opacity = 1;
     };
     g.addEventListener("mousemove", m => show(m.clientX, m.clientY));
-    g.addEventListener("click", m => show(m.clientX, m.clientY));
+    g.addEventListener("click", () => { openEventModal(e, st); });
     g.addEventListener("mouseleave", () => tip.style.opacity = 0);
   });
 }
 function niceStep(raw){ const p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10) * p; }
+
+// event popup window
+let eventModalReturnFocus = null;
+function openEventModal(e, stayData) {
+  const modal = document.getElementById("eventModal");
+  const k = COSTS[e.city];
+  if (!modal || !k) return;
+  activePopupEvent = e;
+  popupTravelerCount = state.n;
+  document.getElementById("eventModalType").textContent = e.type || "Other";
+  document.getElementById("eventModalTitle").textContent = e.name || "Event details";
+  document.getElementById("eventModalDate").textContent = e.date && !isNaN(e.date) ? fmtDate(e.date) : "Date unavailable";
+  document.getElementById("eventModalTime").textContent = e.time || "Time unavailable";
+  document.getElementById("eventModalCity").textContent =e.city || "City unavailable";
+  document.getElementById("eventModalVenue").textContent = e.venue || "Venue unavailable";
+  eventModalReturnFocus = document.activeElement;
+  modal.hidden = false;
+  document.body.classList.add("event-modal-open");
+  renderPopupPeople();
+  updatePopupCosts();
+  document.getElementById("eventModalClose").focus();
+}
+function closeEventModal(){
+  const modal = document.getElementById("eventModal");
+  if(!modal || modal.hidden) return;
+  modal.hidden = true;
+  document.body.classList.remove("event-modal-open");
+  if(eventModalReturnFocus && typeof eventModalReturnFocus.focus === "function") eventModalReturnFocus.focus();
+}
+document.getElementById("eventModalClose").addEventListener("click", closeEventModal);
+document.getElementById("eventModal").addEventListener("click", event => {
+  if(event.target.id === "eventModal") closeEventModal();
+});
+document.addEventListener("keydown", event => {
+  if(event.key === "Escape") closeEventModal();
+});
+let eventTreemapChart = null;
+function renderEventTreemap(event, stayData, travelerCount = state.n) {
+  const container = document.getElementById("eventTreemap");
+  if (!container) return;
+  const costs = [
+    {
+      x: "Tickets",
+      y: tickets(event, travelerCount),
+      color: css("--concert")
+    },
+    {
+      x: "Hotel",
+      y: stayData.hotel,
+      color: css("--sports")
+    },
+    {
+      x: "Meals",
+      y: stayData.meals,
+      color: css("--theater")
+    },
+    {
+      x: "Parking",
+      y: stayData.parking,
+      color: css("--other")
+    }
+  ].filter(item => Number.isFinite(item.y) && item.y > 0);
+  if (eventTreemapChart) {
+    eventTreemapChart.destroy();
+    eventTreemapChart = null;
+  }
+  container.innerHTML = "";
+  if (costs.length === 0) {
+    container.textContent = "No cost breakdown available";
+    return;
+  }
+  const options = {
+    series: [{
+      data: costs.map(item => ({
+        x: item.x,
+        y: item.y
+      }))
+    }],
+    chart: {
+      type: "treemap",
+      height: 320,
+      toolbar: { show: false },
+      animations: { enabled: false }
+    },
+    colors: costs.map(item => item.color),
+    plotOptions: {
+      treemap: { distributed: true, enableShades: false }
+    },
+    dataLabels: {
+      enabled: true,
+      style: { fontSize: "14px", fontWeight: 600 },
+      formatter: function (text, opts) {
+        const item = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+        return [text, money(item.y)];
+      }
+    },
+    tooltip: { enabled: false },
+    legend: { show: false },
+    states: {
+      hover: {
+        filter: { type: "none" }
+      },
+      active: {
+        filter: { type: "none" }
+      }
+    }
+  };
+  eventTreemapChart = new ApexCharts(container, options);
+  eventTreemapChart.render();
+}
+
+
+function updatePopupCosts() {
+  if (!activePopupEvent) return;
+  const event = activePopupEvent;
+  const n = popupTravelerCount;
+  const st = stay(event.city, n);
+  const ticketCost = tickets(event, n);
+  const tripCost = ticketCost + st.total;
+  document.getElementById("eventModalTickets").textContent = money(ticketCost);
+  document.getElementById("eventModalHotel").textContent = money(st.hotel);
+  document.getElementById("eventModalMeals").textContent = money(st.meals);
+  document.getElementById("eventModalParking").textContent = money(st.parking);
+  document.getElementById("eventModalTotal").textContent = money(tripCost);
+  document.getElementById("eventModalPerPerson").textContent = "Estimate for " + (n === 1 ? "1 traveler" : n + " travelers") + " · " + money(tripCost / n) + " per person";
+  renderEventTreemap(event, st, n);
+}
 
 // ---------- Start ----------
 function showError(msg){ const s = document.getElementById("status"); s.hidden = false; s.className = "err"; s.textContent = msg; }
