@@ -69,6 +69,7 @@
       <aside class="dashboard-insights">
         <article class="dashboard-card selection-viz" aria-labelledby="artist-viz-title"><div class="card-heading"><div><span>06</span><h2 id="artist-viz-title">Artist across cities</h2></div><a id="artistVizLink" href="artists.html">Open</a></div><div id="artistMiniViz" aria-live="polite"></div></article>
         <article class="dashboard-card selection-viz" aria-labelledby="city-viz-title"><div class="card-heading"><div><span>07</span><h2 id="city-viz-title">City event mix</h2></div><a id="cityVizLink" href="cities.html">Open</a></div><div id="cityMiniViz" aria-live="polite"></div></article>
+        <article class="dashboard-card selection-viz treemap-viz" aria-labelledby="treemap-viz-title"><div class="card-heading"><div><span>08</span><h2 id="treemap-viz-title">Where your money goes</h2></div></div><div id="eventTreemapMini" aria-live="polite"></div></article>
       </aside>
     </section>
     <p class="dashboard-footnote">Sample planning estimates exclude airfare, taxes and fees. Blank calendar dates do not imply no events exist.</p>
@@ -78,7 +79,7 @@
   <script src="site.js?v=5"></script>
   <script src="cost-scatter.js?v=3"></script>
   <script src="calendar-heatmap.js?v=3"></script>
-  <script src="dashboard-viz.js?v=1"></script>
+  <script src="dashboard-viz.js?v=2"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("explore");
     document.getElementById("footer").innerHTML = siteFooter();
