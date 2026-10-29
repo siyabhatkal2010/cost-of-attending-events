@@ -238,7 +238,7 @@ button, select { cursor: pointer; }
 .dashboard-intro .eyebrow { margin-bottom:5px; }
 .dashboard-intro > p { max-width:470px; margin:0; color:var(--ink-2); font-size:13px; }
 .dashboard-card { min-width:0; border:1px solid var(--rule); border-radius:8px; background:var(--paper); }
-.dashboard-top { display:grid; grid-template-columns:minmax(280px,.8fr) minmax(430px,1.55fr) minmax(250px,.72fr); gap:12px; align-items:stretch; }
+.dashboard-top { display:grid; grid-template-columns:minmax(300px,.9fr) minmax(480px,1.75fr) minmax(210px,.55fr); gap:12px; align-items:stretch; }
 .filter-card,.summary-card { padding:16px; }
 .map-card { padding:14px; }
 .card-heading { display:flex; align-items:start; justify-content:space-between; gap:12px; margin-bottom:10px; }
