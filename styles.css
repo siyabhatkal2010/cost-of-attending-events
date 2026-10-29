@@ -267,8 +267,8 @@ button, select { cursor: pointer; }
 .summary-card .breakdown li { gap:8px; padding:5px 0; font-size:10px; }
 .summary-card .estimate-actions { display:grid; gap:6px; margin-top:12px; font-size:10px; }
 .summary-card .data-note { margin-top:10px; font-size:9px; }
-.dashboard-viz-row { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1.05fr) minmax(250px,.68fr); gap:12px; margin-top:12px; align-items:stretch; }
-.viz-card { min-height:350px; padding:14px; overflow:hidden; }
+.dashboard-viz-row { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1.05fr) minmax(250px,.68fr); gap:12px; margin-top:12px; align-items:start; }
+.viz-card { height:350px; min-height:0; padding:14px; overflow:hidden; }
 .scatter-dashboard .scatter-chart svg { min-width:0; max-height:248px; }
 .scatter-dashboard .scatter-caption { margin:0 0 2px; font-size:9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .mini-legend { display:flex; flex-wrap:wrap; gap:6px 10px; margin-top:4px; color:var(--ink-3); font-size:9px; }
@@ -283,7 +283,7 @@ button, select { cursor: pointer; }
 .compact-detail { max-height:48px; margin-top:7px; overflow:auto; color:var(--ink-3); font-size:9px; }
 .compact-detail h3,.compact-detail p,.compact-detail ul { display:inline; margin:0; padding:0; }
 .compact-detail li { display:none; }
-.dashboard-insights { display:grid; grid-template-rows:.8fr .8fr 1.35fr; gap:8px; min-width:0; }
+.dashboard-insights { display:grid; grid-template-rows:.8fr .8fr 1.35fr; gap:8px; min-width:0; height:350px; align-self:start; }
 .selection-viz { min-height:0; padding:13px; overflow:hidden; }
 .selection-viz .card-heading { margin-bottom:6px; }
 .selection-viz .card-heading h2 { font-size:17px; }
@@ -318,7 +318,8 @@ button, select { cursor: pointer; }
   .summary-card .estimate { display:grid; grid-template-columns:180px 1fr; gap:14px; }
   .summary-card .estimate-actions,.summary-card .data-note { display:none; }
   .dashboard-viz-row { grid-template-columns:1fr 1fr; }
-  .dashboard-insights { grid-column:1/-1; grid-template-columns:1fr 1fr; grid-template-rows:none; }
+  .viz-card { height:auto; min-height:350px; }
+  .dashboard-insights { grid-column:1/-1; grid-template-columns:1fr 1fr; grid-template-rows:none; height:auto; }
 }
 @media (max-width:760px) {
   .dashboard-intro { display:block; }
