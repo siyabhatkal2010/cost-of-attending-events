@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sports | The Real Ticket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css?v=8">
+</head>
+<body>
+  <div id="header"></div>
+  <main class="page">
+    <div class="directory-head">
+      <div><h1 class="display">Compare costs by team</h1></div>
+      <div class="directory-tools"><label><span class="eyebrow">Find a team or event</span><input class="searchbox" id="artistSearch" type="search" placeholder="Try Lakers" autocomplete="off"></label><label class="check"><input id="touringOnly" type="checkbox"> Show in multiple cities</label></div>
+    </div>
+    <div class="chip-row" id="subtypeChips" role="group" aria-label="Filter by subtype" hidden></div>
+    <section class="artist-grid" id="artistGrid" aria-live="polite"></section>
+  </main>
+  <div id="footer"></div>
+  <script src="site.js?v=6"></script>
+  <script>
+    document.getElementById("header").innerHTML = siteHeader("sports"); document.getElementById("footer").innerHTML = siteFooter();
+    const grid = document.getElementById("artistGrid"), search = document.getElementById("artistSearch"), touring = document.getElementById("touringOnly");
+    const TYPE = "sports";
+    let ARTISTS = [], activeSubtype = "";
+    const chips = document.getElementById("subtypeChips");
+    function renderChips() {
+      const counts = new Map(); ARTISTS.forEach(a => counts.set(a.subtype, (counts.get(a.subtype) || 0) + 1));
+      const entries = [["", "All", ARTISTS.length], ...subtypesFor(TYPE).filter(s => counts.has(s)).map(s => [s, s, counts.get(s)])];
+      chips.hidden = entries.length <= 2;
+      chips.innerHTML = entries.map(([value, label, n]) => `<button type="button" class="chip" data-subtype="${escapeHTML(value)}" aria-pressed="${value === activeSubtype}">${escapeHTML(label)} <span>${n}</span></button>`).join("");
+    }
+    chips.addEventListener("click", e => { const btn = e.target.closest("button[data-subtype]"); if (!btn) return; activeSubtype = btn.dataset.subtype; renderChips(); render(); });
+    function render() {
+      const query = search.value.trim().toLowerCase();
+      const list = ARTISTS.filter(a => a.name.toLowerCase().includes(query) && (!activeSubtype || a.subtype === activeSubtype) && (!touring.checked || a.cities.length > 1));
+      grid.innerHTML = list.length ? list.map(a => `<a class="artist-card" href="${performerHref(a.name, TYPE)}"><div><p class="eyebrow">${a.subtype} · ${a.events.length} event${a.events.length === 1 ? "" : "s"}</p><h2>${a.name}</h2></div><div><p class="meta">${a.cities.join(" · ")}<br>Tickets from ${money(Math.min(...a.events.map(e => e.ticket)))}</p><span class="arrow" aria-hidden="true">→</span></div></a>`).join("") : `<p class="empty">No results match that search.</p>`;
+    }
+    search.addEventListener("input", render); touring.addEventListener("change", render);
+    loadEvents().then(events => {
+      ARTISTS = groupPerformers(events, TYPE); renderChips(); render();
+    }).catch(error => showLoadError(grid, error));
+  </script>
+</body>
+</html>

@@ -14,7 +14,7 @@ function renderSelectionVizzes(events, selected, travelers, mode, hotelClass, ho
   const esc = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
   const categoryLabel = selected.type === "sports" ? "Team across cities" : selected.type === "theater" ? "Show across cities" : "Artist across cities";
   document.getElementById("artist-viz-title").textContent = categoryLabel;
-  document.getElementById("artistVizLink").href = `artist.html?artist=${encodeURIComponent(selected.performer)}`;
+  document.getElementById("artistVizLink").href = performerHref(selected.performer, selected.type);
   document.getElementById("cityVizLink").href = `cities.html?city=${encodeURIComponent(selected.city)}`;
 
   const performerEvents = events.filter(event => event.performer === selected.performer);
