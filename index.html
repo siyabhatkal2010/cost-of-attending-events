@@ -9,85 +9,78 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
   <div id="header"></div>
-  <main class="page">
-    <p class="eyebrow">The whole night, not just the ticket</p>
-    <h1 class="display">What will it really cost to be there?</h1>
-    <p class="intro">Choose a performer or event. We’ll add the ticket, hotel, meals and getting around so you can compare the night—not just the seat.</p>
+  <main class="dashboard-page">
+    <header class="dashboard-intro">
+      <div><p class="eyebrow">The whole trip, in one view</p><h1>What will it really cost to be there?</h1></div>
+      <p>Select an event once. Every map, comparison and price view updates together.</p>
+    </header>
 
-    <section class="explorer" aria-labelledby="planner-title">
-      <div class="planner">
-        <h2 id="planner-title">Plan an event trip</h2>
-        <p class="planner-note">Choose what you want to see, then narrow the available events.</p>
-        <div class="field-row">
-          <label class="field"><span>1. Event category</span><select id="category"><option value="concert">Artists</option><option value="sports">Sports</option><option value="theater">Live events</option></select></label>
+    <section class="dashboard-top" aria-label="Event trip planner">
+      <aside class="dashboard-card filter-card" aria-labelledby="planner-title">
+        <div class="card-heading"><div><span>01</span><h2 id="planner-title">Choose an event</h2></div><p id="eventCount" aria-live="polite"></p></div>
+        <div class="compact-fields">
+          <label class="field"><span>Category</span><select id="category"><option value="concert">Artists</option><option value="sports">Sports</option><option value="theater">Live events</option></select></label>
           <label class="field"><span>Type</span><select id="subtype"></select></label>
-        </div>
-        <div class="field-row">
-          <label class="field"><span>2. Search</span><input id="eventSearch" type="search" placeholder="Search artists or concerts" autocomplete="off"></label>
+          <label class="field field-wide"><span>Search</span><input id="eventSearch" type="search" placeholder="Search artists or concerts" autocomplete="off"></label>
+          <label class="field field-wide"><span>Event</span><select id="event"></select></label>
           <label class="field"><span>On or after</span><input id="eventDate" type="date"></label>
-        </div>
-        <label class="field"><span>3. Event</span><select id="event"></select></label>
-        <p class="filter-note" id="eventCount" aria-live="polite"></p>
-        <div class="field-row">
           <label class="field"><span>Travelers</span><select id="travelers"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
-          <label class="field"><span>Hotel class</span><select id="hotelClass"><option value="motel">Motel / budget</option><option value="standard" selected>Standard hotel</option><option value="upscale">Upscale hotel</option><option value="five_star">Five-star hotel</option></select></label>
+          <label class="field"><span>Hotel</span><select id="hotelClass"><option value="motel">Motel / budget</option><option value="standard" selected>Standard hotel</option><option value="upscale">Upscale hotel</option><option value="five_star">Five-star hotel</option></select></label>
+          <label class="field"><span>Home</span><select id="homeCity"><option value="">Outside these cities</option><option>Chicago</option><option>Houston</option><option>Los Angeles</option><option>New York</option><option>Phoenix</option></select></label>
+          <label class="field"><span>Local travel</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option></select></label>
         </div>
-        <div class="field-row">
-          <label class="field"><span>Home location</span><select id="homeCity"><option value="">Outside these cities</option><option>Chicago</option><option>Houston</option><option>Los Angeles</option><option>New York</option><option>Phoenix</option></select><small class="field-help">Hotel cost is removed for events in your home city.</small></label>
-          <label class="field"><span>Getting around</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option></select></label>
-        </div>
-        <div class="estimate" id="estimate" aria-live="polite"></div>
-      </div>
+        <p class="compact-note">Hotel cost is removed when the event is in your selected home city.</p>
+      </aside>
 
-      <aside class="map-panel" aria-labelledby="map-title">
-        <div class="map-head">
-          <div><h2 id="map-title">Compare cities</h2><p id="mapUnit">Average trip</p></div>
-          <div class="map-toggle" role="group" aria-label="Map view">
-            <button type="button" id="eventViewBtn" class="map-toggle-btn active" aria-pressed="true">Selected event</button>
-            <button type="button" id="costViewBtn" class="map-toggle-btn" aria-pressed="false">All city costs</button>
-          </div>
+      <section class="dashboard-card map-card" aria-labelledby="map-title">
+        <div class="card-heading map-heading">
+          <div><span>02</span><h2 id="map-title">Where can you see it?</h2></div>
+          <div class="map-toggle" role="group" aria-label="Map view"><button type="button" id="eventViewBtn" class="map-toggle-btn active" aria-pressed="true">Event cities</button><button type="button" id="costViewBtn" class="map-toggle-btn" aria-pressed="false">All costs</button></div>
         </div>
-        <div class="map-shell">
-          <div id="eventMap" role="region" aria-label="Map of average event-trip costs by city"></div>
-          <div class="map-label" id="mapLabel">Totals include tickets, meals and parking.</div>
-        </div>
+        <p id="mapUnit" class="card-meta">Average trip</p>
+        <div class="map-shell"><div id="eventMap" role="region" aria-label="Map of average event-trip costs by city"></div><div class="map-label" id="mapLabel">Totals include tickets, meals and parking.</div></div>
+      </section>
+
+      <aside class="dashboard-card summary-card" aria-labelledby="summary-title">
+        <div class="card-heading"><div><span>03</span><h2 id="summary-title">Trip estimate</h2></div></div>
+        <div class="estimate" id="estimate" aria-live="polite"></div>
       </aside>
     </section>
 
-    <section class="scatter-section" aria-labelledby="scatter-title">
-      <div class="section-head"><div><p class="eyebrow">Cost drivers</p><h2 id="scatter-title">Ticket price vs. local costs</h2></div><p>Is the ticket or the destination driving your total? Each dot is one event. Select a dot to update the trip planner.</p></div>
-      <div class="viz-control"><label for="scatterTravelers">Travelers</label><select id="scatterTravelers"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
-      <p id="scatterCount" class="scatter-caption" aria-live="polite">Loading events…</p>
-      <div class="viz-layout"><div id="costScatter" class="scatter-chart"></div><aside id="scatterDetail" class="viz-detail" aria-live="polite">Select a dot to view its city and price breakdown.</aside></div>
-      <div class="scatter-legend"><span><i style="background:#78aefc"></i>New York</span><span><i style="background:#ff8052"></i>Los Angeles</span><span><i style="background:#38c997"></i>Chicago</span><span><i style="background:#ad8aff"></i>Houston</span><span><i style="background:#f0c674"></i>Phoenix</span></div>
-      <p class="data-note">Based on sampled event ticket prices, hotel-quality nightly rates, and city-average meal and transportation estimates. Costs exclude airfare, taxes and fees. This is not historical pricing data.</p>
-    </section>
+    <section class="dashboard-viz-row" aria-label="Coordinated cost visualizations">
+      <article class="dashboard-card viz-card scatter-dashboard" aria-labelledby="scatter-title">
+        <div class="card-heading"><div><span>04</span><h2 id="scatter-title">Ticket vs. local cost</h2></div></div>
+        <p id="scatterCount" class="card-meta" aria-live="polite">Loading events…</p>
+        <div id="costScatter" class="scatter-chart"></div>
+        <div class="mini-legend"><span><i style="background:#78aefc"></i>NY</span><span><i style="background:#ff8052"></i>LA</span><span><i style="background:#38c997"></i>CHI</span><span><i style="background:#ad8aff"></i>HOU</span><span><i style="background:#f0c674"></i>PHX</span></div>
+      </article>
 
-    <section class="calendar-section" aria-labelledby="calendar-title">
-      <div class="section-head"><div><p class="eyebrow">Find a better date</p><h2 id="calendar-title">Event affordability calendar</h2></div><p>Which dates offer the lowest estimated event-trip costs? Each colored day shows the cheapest sampled event on that date.</p></div>
-      <div class="calendar-filters"><label class="calendar-month-label" for="calendarMonth">Month <select id="calendarMonth" aria-label="Select calendar month"></select></label><label class="calendar-month-label" for="calendarCity">City <select id="calendarCity" aria-label="Filter calendar by city"></select></label><label class="calendar-month-label" for="calendarTravelers">Travelers <select id="calendarTravelers"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label></div>
-      <div class="viz-layout"><div id="calendarHeatmap" class="calendar-grid" role="group" aria-label="Event affordability by date"></div><aside id="calendarPriceDetail" class="viz-detail" aria-live="polite">Select a date to see the event and price breakdown.</aside></div>
-      <p id="calendarDetail" class="data-note" aria-live="polite">Loading calendar…</p>
-      <p class="data-note">Sample events only; blank dates do not imply no events exist. Prices are estimates, not historical ticket prices.</p>
-    </section>
+      <article class="dashboard-card viz-card calendar-dashboard" aria-labelledby="calendar-title">
+        <div class="card-heading"><div><span>05</span><h2 id="calendar-title">Best dates</h2></div></div>
+        <div class="calendar-filters"><label for="calendarMonth">Month<select id="calendarMonth" aria-label="Select calendar month"></select></label><label for="calendarCity">City<select id="calendarCity" aria-label="Filter calendar by city"></select></label><label for="calendarTravelers">People<select id="calendarTravelers"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label></div>
+        <div id="calendarHeatmap" class="calendar-grid" role="group" aria-label="Event affordability by date"></div>
+        <p id="calendarDetail" class="sr-only" aria-live="polite">Loading calendar…</p>
+        <aside id="calendarPriceDetail" class="compact-detail" aria-live="polite">Select a date for its cheapest event.</aside>
+      </article>
 
-    <section aria-labelledby="compare-title">
-      <div class="section-head"><h2 id="compare-title">Two ways to compare</h2><p>Browse by place when you’re flexible, or follow a favorite act from city to city.</p></div>
-      <div class="feature-links">
-        <a class="feature-card" href="cities.html"><span class="num">01 / Places</span><h3>Which city is kinder to your wallet?</h3><p>Rank cities by the combined price of tickets and an overnight stay.</p></a>
-        <a class="feature-card" href="artists.html"><span class="num">02 / Performers</span><h3>Where should you see your favorite artist?</h3><p>Compare the true attendance cost for the same act across its tour stops.</p></a>
-      </div>
+      <aside class="dashboard-insights">
+        <article class="dashboard-card selection-viz" aria-labelledby="artist-viz-title"><div class="card-heading"><div><span>06</span><h2 id="artist-viz-title">Artist across cities</h2></div><a id="artistVizLink" href="artists.html">Open</a></div><div id="artistMiniViz" aria-live="polite"></div></article>
+        <article class="dashboard-card selection-viz" aria-labelledby="city-viz-title"><div class="card-heading"><div><span>07</span><h2 id="city-viz-title">City event mix</h2></div><a id="cityVizLink" href="cities.html">Open</a></div><div id="cityMiniViz" aria-live="polite"></div></article>
+        <article class="dashboard-card selection-viz treemap-viz" aria-labelledby="treemap-viz-title"><div class="card-heading"><div><span>08</span><h2 id="treemap-viz-title">Where your money goes</h2></div></div><div id="eventTreemapMini" aria-live="polite"></div></article>
+      </aside>
     </section>
+    <p class="dashboard-footnote">Sample planning estimates exclude airfare, taxes and fees. Blank calendar dates do not imply no events exist.</p>
   </main>
   <div id="footer"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="site.js?v=6"></script>
   <script src="cost-scatter.js?v=3"></script>
   <script src="calendar-heatmap.js?v=3"></script>
+  <script src="dashboard-viz.js?v=2"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("explore");
     document.getElementById("footer").innerHTML = siteFooter();
@@ -157,7 +150,8 @@
       if (!event) {
         document.getElementById("estimate").innerHTML = `<p class="empty-estimate"><strong>No events match those filters.</strong><br>Try another search or date.</p>`;
         renderMap(null);
-        renderCostScatter(EVENTS, Number(document.getElementById("scatterTravelers").value), mode, "", chooseEvent, hotelClass, homeCity);
+        renderCostScatter(EVENTS, n, mode, "", chooseEvent, hotelClass, homeCity);
+        renderSelectionVizzes(EVENTS, null, n, mode, hotelClass, homeCity);
         return;
       }
       const cost = tripCost(event, n, mode, hotelClass, homeCity);
@@ -166,7 +160,8 @@
         <div class="estimate-actions"><a class="rule-link" href="${performerHref(event.performer, event.type)}">Compare this ${categoryOf(event.type).noun}</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
         <p class="data-note">Prototype estimate excludes airfare, taxes and fees. ${cost.isHomeCity ? `Lodging is removed because ${event.city} is your selected home city.` : "Hotel-class rates are sample planning estimates."}</p>`;
       renderMap(event);
-      renderCostScatter(EVENTS, Number(document.getElementById("scatterTravelers").value), mode, event.id, chooseEvent, hotelClass, homeCity);
+      renderCostScatter(EVENTS, n, mode, event.id, chooseEvent, hotelClass, homeCity);
+      renderSelectionVizzes(EVENTS, event, n, mode, hotelClass, homeCity);
     }
     function cityMarkerIcon(city, average, active) {
       const slug = city.toLowerCase().replace(/[^a-z]+/g, "-");
@@ -232,11 +227,10 @@
     hotelClassSelect.addEventListener("change", render);
     homeCitySelect.addEventListener("change", render);
     modeSelect.addEventListener("change", render);
-    document.getElementById("scatterTravelers").addEventListener("change", render);
     document.getElementById("eventViewBtn").addEventListener("click", () => setMapView("event"));
     document.getElementById("costViewBtn").addEventListener("click", () => setMapView("cost"));
     initMap();
-    loadEvents().then(events => { EVENTS = events; const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; categorySelect.value = featured.type; updateCategoryControls(); fillEvents(featured.id); initCalendarHeatmap(EVENTS, chooseEvent); }).catch(error => showLoadError(document.querySelector(".planner"), error));
+    loadEvents().then(events => { EVENTS = events; const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; categorySelect.value = featured.type; updateCategoryControls(); fillEvents(featured.id); initCalendarHeatmap(EVENTS, chooseEvent); }).catch(error => showLoadError(document.querySelector(".filter-card"), error));
   </script>
 </body>
 </html>
