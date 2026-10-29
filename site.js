@@ -103,8 +103,85 @@ function dateLabel(date) {
 function byName(a, b) { return a.localeCompare(b, undefined, { sensitivity: "base" }); }
 function unique(values) { return [...new Set(values)].sort(byName); }
 
+
+/* ---------- Event-type segmentation ----------
+   The CSV's event_type maps to three user-facing categories. Subtypes are derived on the
+   frontend (the data has no genre/sport column), by ordered regex rules: first match wins,
+   otherwise the category's fallback. To support new data, add a rule or tweak a regex here. */
+const EVENT_CATEGORIES = {
+  concert: { key: "concert", label: "Artists", noun: "artist", page: "artists.html", nav: "artists",
+    searchPlaceholder: "Try Olivia Rodrigo", guide: "Artist cost guide",
+    fallback: "Other",
+    rules: [
+      ["Rock & alternative", "performer", /def leppard|death cab|joyce manor|neighbourhood|ben folds|trans-siberian/i],
+      ["Classical & orchestral", "performer", /orchestra|philharmonic|symphony|seong jin cho/i],
+      ["Film & TV concerts", "performer", /in concert/i],
+      ["Pop", "performer", /olivia rodrigo|teddy swims|straight no chaser/i],
+      ["R&B & hip-hop", "performer", /brent faiyaz|jessie reyez|tyla/i],
+      ["Country", "performer", /dolly parton/i],
+      ["Electronic & dance", "performer", /john summit/i],
+      ["Latin & international", "performer", /lupillo rivera|udit narayan/i]] },
+  sports: { key: "sports", label: "Sports", noun: "team", page: "sports.html", nav: "sports",
+    searchPlaceholder: "Try Lakers", guide: "Team cost guide",
+    fallback: "Motorsports & entertainment",
+    rules: [
+      ["Football", "name", /football/i], ["Basketball", "name", /basketball/i],
+      ["Hockey", "name", /hockey/i], ["Baseball", "name", /baseball/i], ["Soccer", "name", /soccer/i],
+      ["Basketball", "performer", /lakers|clippers|rockets|suns|blue demons|cougars/i],
+      ["Hockey", "performer", /blackhawks|kings|devils|islanders|rangers/i],
+      ["Football", "performer", /cardinals|chargers|jets/i],
+      ["Baseball", "performer", /diamondbacks/i], ["Soccer", "performer", /city fc/i]] },
+  theater: { key: "theater", label: "Live events", noun: "show", page: "live-events.html", nav: "live-events",
+    searchPlaceholder: "Try Wicked", guide: "Live event cost guide",
+    fallback: "Broadway musicals",
+    rules: [
+      ["Ballet & dance", "name", /ballet|nutcracker|dance/i],
+      ["Circus & spectacle", "name", /cirque|spectacular/i],
+      ["Family shows", "name", /bluey|grinch/i],
+      ["Plays & comedy", "name", /goes wrong|cursed child|mincemeat/i]] }
+};
+const CATEGORY_ORDER = ["concert", "sports", "theater"];
+
+function categoryOf(type) { return EVENT_CATEGORIES[type] || EVENT_CATEGORIES.concert; }
+
+function subtypeOf(event) {
+  const cat = categoryOf(event.type);
+  const hit = cat.rules.find(([, field, re]) => re.test(field === "name" ? event.name : event.performer));
+  return hit ? hit[0] : cat.fallback;
+}
+
+function subtypesFor(type) {
+  const cat = categoryOf(type);
+  return [...new Set([...cat.rules.map(rule => rule[0]), cat.fallback])];
+}
+
+// One entry per performer within a category, with its most common subtype.
+function groupPerformers(events, type) {
+  const groups = new Map();
+  events.filter(e => !type || e.type === type).forEach(e => {
+    const key = `${e.type}|${e.performer}`;
+    if (!groups.has(key)) groups.set(key, { name: e.performer, type: e.type, events: [] });
+    groups.get(key).events.push(e);
+  });
+  return [...groups.values()].map(g => {
+    const tally = new Map();
+    g.events.forEach(e => { const s = subtypeOf(e); tally.set(s, (tally.get(s) || 0) + 1); });
+    g.subtype = [...tally].sort((a, b) => b[1] - a[1])[0][0];
+    g.cities = unique(g.events.map(e => e.city));
+    return g;
+  }).sort((a, b) => b.cities.length - a.cities.length || byName(a.name, b.name));
+}
+
+function performerHref(name, type) {
+  return `artist.html?artist=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}`;
+}
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
 function siteHeader(active) {
-  const links = [["index.html", "explore", "Explore"], ["cities.html", "cities", "Cities"], ["artists.html", "artists", "Artists"]];
+  const links = [["index.html", "explore", "Explore"], ["cities.html", "cities", "Cities"], ...CATEGORY_ORDER.map(t => [categoryOf(t).page, categoryOf(t).nav, categoryOf(t).label])];
   return `<header class="site-header">
     <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">$</span><span class="brand-text">The Real Ticket</span></a>
     <nav class="site-nav" aria-label="Main navigation">
