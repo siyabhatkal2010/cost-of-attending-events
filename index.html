@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
   <div id="header"></div>
@@ -22,7 +22,10 @@
       <div class="planner">
         <h2 id="planner-title">Plan an event trip</h2>
         <p class="planner-note">Choose what you want to see, then narrow the available events.</p>
-        <label class="field"><span>1. Event category</span><select id="category"><option value="concert">Artists</option><option value="sports">Sports</option><option value="theater">Performances</option></select></label>
+        <div class="field-row">
+          <label class="field"><span>1. Event category</span><select id="category"><option value="concert">Artists</option><option value="sports">Sports</option><option value="theater">Live events</option></select></label>
+          <label class="field"><span>Type</span><select id="subtype"></select></label>
+        </div>
         <div class="field-row">
           <label class="field"><span>2. Search</span><input id="eventSearch" type="search" placeholder="Search artists or concerts" autocomplete="off"></label>
           <label class="field"><span>On or after</span><input id="eventDate" type="date"></label>
@@ -82,13 +85,14 @@
   </main>
   <div id="footer"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="site.js?v=5"></script>
+  <script src="site.js?v=6"></script>
   <script src="cost-scatter.js?v=3"></script>
   <script src="calendar-heatmap.js?v=3"></script>
   <script>
     document.getElementById("header").innerHTML = siteHeader("explore");
     document.getElementById("footer").innerHTML = siteFooter();
     const categorySelect = document.getElementById("category");
+    const subtypeSelect = document.getElementById("subtype");
     const eventSearch = document.getElementById("eventSearch");
     const eventDate = document.getElementById("eventDate");
     const eventSelect = document.getElementById("event");
@@ -109,13 +113,17 @@
     function filteredEvents() {
       const query = eventSearch.value.trim().toLowerCase(), after = eventDate.value;
       return EVENTS.filter(event => event.type === categorySelect.value)
+        .filter(event => !subtypeSelect.value || subtypeOf(event) === subtypeSelect.value)
         .filter(event => !query || `${event.name} ${event.performer} ${event.city} ${event.venue}`.toLowerCase().includes(query))
         .filter(event => !after || localDateKey(event.date) >= after)
         .sort((a,b) => a.date - b.date);
     }
     function updateCategoryControls() {
-      const copy = { concert: "Search artists or concerts", sports: "Search teams or games", theater: "Search shows or performers" };
-      eventSearch.placeholder = copy[categorySelect.value];
+      const cat = categoryOf(categorySelect.value), kept = subtypeSelect.value;
+      const present = new Set(EVENTS.filter(e => e.type === cat.key).map(subtypeOf));
+      subtypeSelect.innerHTML = option("", `All ${cat.label.toLowerCase()}`) + subtypesFor(cat.key).filter(s => present.has(s)).map(s => option(s, s)).join("");
+      subtypeSelect.value = present.has(kept) ? kept : "";
+      eventSearch.placeholder = { concert: "Search artists or concerts", sports: "Search teams or games", theater: "Search shows or companies" }[cat.key];
       const dates = EVENTS.filter(event => event.type === categorySelect.value).map(event => localDateKey(event.date)).sort();
       eventDate.min = dates[0] || ""; eventDate.max = dates.at(-1) || "";
     }
@@ -129,7 +137,7 @@
     }
     function chooseEvent(event) {
       categorySelect.value = event.type;
-      eventSearch.value = ""; eventDate.value = "";
+      eventSearch.value = ""; eventDate.value = ""; subtypeSelect.value = "";
       updateCategoryControls(); fillEvents(event.id);
     }
     function selectedEvent() { return EVENTS.find(e => e.id === eventSelect.value) || null; }
@@ -155,7 +163,7 @@
       const cost = tripCost(event, n, mode, hotelClass, homeCity);
       document.getElementById("estimate").innerHTML = `<div class="estimate-top"><span>Estimated total for ${n} ${n === 1 ? "person" : "people"}</span><strong class="estimate-total">${money(cost.total)}</strong></div>
         <ul class="breakdown"><li><span>Tickets · ${n} × ${money(event.ticket)}</span><strong>${money(cost.tickets)}</strong></li><li><span>${hotelCostLabel(cost)}</span><strong>${money(cost.hotel)}</strong></li><li><span>Meals</span><strong>${money(cost.meals)}</strong></li><li><span>${mode === "drive" ? "Parking" : "Round-trip transit"}</span><strong>${money(cost.localTravel)}</strong></li></ul>
-        <div class="estimate-actions"><a class="rule-link" href="artist.html?artist=${encodeURIComponent(event.performer)}">Compare this performer</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
+        <div class="estimate-actions"><a class="rule-link" href="${performerHref(event.performer, event.type)}">Compare this ${categoryOf(event.type).noun}</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
         <p class="data-note">Prototype estimate excludes airfare, taxes and fees. ${cost.isHomeCity ? `Lodging is removed because ${event.city} is your selected home city.` : "Hotel-class rates are sample planning estimates."}</p>`;
       renderMap(event);
       renderCostScatter(EVENTS, Number(document.getElementById("scatterTravelers").value), mode, event.id, chooseEvent, hotelClass, homeCity);
@@ -215,7 +223,8 @@
       document.getElementById("costViewBtn").setAttribute("aria-pressed", String(view === "cost"));
       render();
     }
-    categorySelect.addEventListener("change", () => { eventSearch.value = ""; eventDate.value = ""; updateCategoryControls(); fillEvents(); });
+    categorySelect.addEventListener("change", () => { eventSearch.value = ""; eventDate.value = ""; subtypeSelect.value = ""; updateCategoryControls(); fillEvents(); });
+    subtypeSelect.addEventListener("change", () => fillEvents());
     eventSearch.addEventListener("input", () => fillEvents());
     eventDate.addEventListener("change", () => fillEvents());
     eventSelect.addEventListener("change", render);

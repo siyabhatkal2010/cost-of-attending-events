@@ -229,3 +229,13 @@ button, select { cursor: pointer; }
 .calendar-day:disabled { opacity: .36; cursor: default; }
 .calendar-spacer { min-height: 1px; }
 @media (max-width: 560px) { .calendar-section { padding: .9rem; } .calendar-grid { gap: .2rem; } .calendar-day { font-size: .8rem; } }
+
+/* event-type segmentation */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+.chip { padding: 8px 14px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); color: var(--ink-2); font: 600 13px var(--sans, inherit); cursor: pointer; }
+.chip span { margin-left: 4px; color: var(--ink-3); font-weight: 500; }
+.chip:hover { border-color: var(--ink); color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--cream); }
+.chip[aria-pressed="true"] span { color: var(--cream); opacity: .75; }
+.chip-row[hidden] { display: none; }
+.picker-search { margin-bottom: 8px; }

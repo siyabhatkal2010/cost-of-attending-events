@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Artist comparison | The Real Ticket</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css?v=7">
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css?v=8">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <style>#artistEventMap{width:100%;height:420px;min-height:320px;border-radius:12px}.artist-map-panel{position:static;margin:28px 0}.artist-map-panel .map-shell{min-height:420px}.artist-map-legend{margin-top:12px}</style>
   <style>
@@ -37,8 +37,8 @@
   <div id="header"></div>
   <main class="page" id="artistPage">
     <div class="artist-hero">
-      <div><p class="eyebrow">Artist cost guide</p><h1 class="display" id="artistName">Loading…</h1><p class="intro" id="artistIntro">Comparing tickets and a one-night stay across available cities.</p></div>
-      <label class="artist-picker field"><span>Choose another performer</span><select id="artistPicker"></select></label>
+      <div><p class="eyebrow" id="guideEyebrow">Artist cost guide</p><h1 class="display" id="artistName">Loading…</h1><p class="intro" id="artistIntro">Comparing tickets and a one-night stay across available cities.</p></div>
+      <div class="artist-picker field"><label for="pickerSearch"><span id="pickerLabel">Choose another performer</span></label><input class="picker-search" id="pickerSearch" type="search" placeholder="Search…" autocomplete="off"><select id="artistPicker" aria-label="Performer list, grouped by subtype"></select></div>
     </div>
     <section class="stats" id="artistStats"></section>
     <section class="map-panel artist-map-panel" aria-labelledby="artistMapTitle">
@@ -64,11 +64,11 @@
   </main>
   <div id="footer"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="site.js?v=5"></script>
+  <script src="site.js?v=6"></script>
   <script>
-    document.getElementById("header").innerHTML = siteHeader("artists"); document.getElementById("footer").innerHTML = siteFooter();
+    document.getElementById("footer").innerHTML = siteFooter();
     const picker = document.getElementById("artistPicker"), comparison = document.getElementById("cityComparison");
-    let EVENTS = [], currentArtist = "";
+    let EVENTS = [], currentArtist = "", currentType = "", PERFORMERS = [];
     // basically copied from index.html's proportional cost map
     // this one is specific to the performer/artist tho
     let artistMap = null;
@@ -201,7 +201,7 @@
 
     function render() {
       const n = Number(document.getElementById("travelers").value), mode = document.getElementById("travelMode").value;
-      const artistEvents = EVENTS.filter(e => e.performer === currentArtist);
+      const artistEvents = EVENTS.filter(e => e.performer === currentArtist && e.type === currentType);
       const cheapestByCity = unique(artistEvents.map(e => e.city)).map(city => artistEvents.filter(e => e.city === city).sort((a,b) => a.ticket - b.ticket)[0]);
       const rows = cheapestByCity.map(event => ({ event, cost: tripCost(event, n, mode) })).sort((a,b) => a.cost.total - b.cost.total);
       const max = Math.max(1, ...rows.map(row => row.cost.total));
@@ -213,14 +213,35 @@
       renderArtistMap(artistEvents, n, mode);
       renderEventChart(artistEvents, n, mode);
     }
-    picker.addEventListener("change", () => { location.search = `?artist=${encodeURIComponent(picker.value)}`; });
+    // Picker: text search + options grouped by subtype, so the list stays usable as data grows.
+    function fillPicker() {
+      const query = document.getElementById("pickerSearch").value.trim().toLowerCase();
+      const matches = PERFORMERS.filter(p => p.name.toLowerCase().includes(query) || p.name === currentArtist && !query);
+      const bySubtype = new Map();
+      matches.slice().sort((a, b) => byName(a.name, b.name)).forEach(p => { if (!bySubtype.has(p.subtype)) bySubtype.set(p.subtype, []); bySubtype.get(p.subtype).push(p); });
+      picker.innerHTML = matches.length
+        ? subtypesFor(currentType).filter(s => bySubtype.has(s)).map(s => `<optgroup label="${escapeHTML(s)}">${bySubtype.get(s).map(p => `<option value="${escapeHTML(p.name)}"${p.name === currentArtist ? " selected" : ""}>${escapeHTML(p.name)}</option>`).join("")}</optgroup>`).join("")
+        : `<option value="" disabled selected>No matches</option>`;
+    }
+    document.getElementById("pickerSearch").addEventListener("input", fillPicker);
+    picker.addEventListener("change", () => { if (picker.value) location.search = `?artist=${encodeURIComponent(picker.value)}&type=${encodeURIComponent(currentType)}`; });
     document.getElementById("travelers").addEventListener("change", render); document.getElementById("travelMode").addEventListener("change", render);
     initArtistMap();
     loadEvents().then(events => {
-      EVENTS = events; const performers = unique(events.map(e => e.performer));
-      const requested = new URLSearchParams(location.search).get("artist"); currentArtist = performers.includes(requested) ? requested : (performers.includes("Olivia Rodrigo") ? "Olivia Rodrigo" : performers[0]);
-      picker.innerHTML = performers.map(name => `<option${name === currentArtist ? " selected" : ""}>${name}</option>`).join(""); render();
-    }).catch(error => showLoadError(document.getElementById("artistPage"), error));
+      EVENTS = events;
+      const params = new URLSearchParams(location.search), requested = params.get("artist"), requestedType = params.get("type");
+      // Category comes from ?type=, else from the requested performer, else the default (artists).
+      currentType = EVENT_CATEGORIES[requestedType] ? requestedType : (events.find(e => e.performer === requested)?.type || "concert");
+      PERFORMERS = groupPerformers(events, currentType);
+      const names = PERFORMERS.map(p => p.name);
+      currentArtist = names.includes(requested) ? requested : (names.includes("Olivia Rodrigo") ? "Olivia Rodrigo" : names.slice().sort(byName)[0]);
+      const cat = categoryOf(currentType);
+      document.getElementById("header").innerHTML = siteHeader(cat.nav);
+      document.getElementById("guideEyebrow").textContent = cat.guide;
+      document.getElementById("pickerLabel").textContent = `Choose another ${cat.noun}`;
+      document.getElementById("pickerSearch").placeholder = cat.searchPlaceholder.replace("Try ", "Search, e.g. ");
+      fillPicker(); render();
+    }).catch(error => { document.getElementById("header").innerHTML = siteHeader("artists"); showLoadError(document.getElementById("artistPage"), error); });
   </script>
 </body>
 </html>
