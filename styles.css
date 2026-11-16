@@ -260,6 +260,9 @@ button, select { cursor: pointer; }
 .dashboard-top .map-label { left:12px; bottom:20px; padding:8px 10px; font-size:10px; }
 .dashboard-top .map-toggle-btn { padding:5px 8px; font-size:9px; }
 .summary-card .estimate { margin:0; padding:0; border:0; }
+.best-city-callout { margin:10px 0 14px; padding:10px 11px; border-left:3px solid var(--select); background:var(--select-wash); }
+.best-city-callout span,.best-city-callout small { display:block; color:var(--ink-2); font-size:9px; line-height:1.35; }
+.best-city-callout strong { display:block; margin:3px 0; font:650 20px/1.1 var(--serif); color:var(--ink); }
 .summary-card .estimate-top { display:block; }
 .summary-card .estimate-top span { font-size:10px; }
 .summary-card .estimate-total { display:block; margin-top:3px; font-size:42px; }

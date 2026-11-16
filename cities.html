@@ -276,15 +276,14 @@ h1{font-weight:700;letter-spacing:-.015em;line-height:1.02}
 <script>
 // ---------- Config: file locations and the column names this page reads ----------
 const CONFIG = {
-  eventsFile: "data/major_event_ticket_prices.csv",
-  costsFile: "data/city_costs.xlsx",
+  eventsFile: "data/synthetic_25_metro_real_event_prices.csv",
+  costsFile: "data/synthetic_25_metro_city_costs.csv",
   ev: {
-    city: "pilot_city", name: "event_name", type: "event_type", date: "event_date", time: "event_time",
-    venue: "canonical_major_venue", venueFallback: "venue_name",
-    priceForTwo: "last_valid_ticket_cost_for_two", priceForTwoFallback: "current_ticket_cost_for_two"
+    city: "metro", name: "event_name", type: "analysis_category", date: "event_date", time: "event_time",
+    venue: "venue_name", venueFallback: "venue_name",
+    priceForTwo: "synthetic_ticket_cost_for_two", priceForTwoFallback: "synthetic_ticket_cost_for_two"
   },
-  // Cost columns are found by matching these words in the Excel header row
-  costs: { metro: "metro", hotel: "hotel", meal: "inexpensive meal", parking: "parking / day", transit: "transit" },
+  costs: { metro: "metro", hotel: "hotel_per_night", meal: "inexpensive_meal", parking: "parking_per_day", transit: "transit_one_way" },
   maxTravelers: 4, peoplePerRoom: 2, nameMaxLength: 36
 };
 
@@ -307,7 +306,7 @@ let activePopupEvent = null;
 async function loadFromUrls(){
   const [evText, coBuf] = await Promise.all([
     fetch(CONFIG.eventsFile).then(r => { if(!r.ok) throw new Error(CONFIG.eventsFile+" ("+r.status+")"); return r.text(); }),
-    fetch(CONFIG.costsFile).then(r => { if(!r.ok) throw new Error(CONFIG.costsFile+" ("+r.status+")"); return r.arrayBuffer(); })
+    fetch(CONFIG.costsFile).then(r => { if(!r.ok) throw new Error(CONFIG.costsFile+" ("+r.status+")"); return r.text(); })
   ]);
   init(evText, coBuf);
 }
@@ -332,25 +331,18 @@ function parseEvents(text){
     let p2 = parseFloat(r[c.priceForTwo]);
     if(!(p2 > 0)) p2 = parseFloat(r[c.priceForTwoFallback]);
     const d = new Date(r[c.date] + "T00:00:00");
-    return { city:(r[c.city]||"").trim(), name:(r[c.name]||"").trim(), type:norm(r[c.type]) || "other",
+    const rawType = norm(r[c.type]) || "other";
+    const type = rawType === "music" ? "concert" : rawType === "stage" ? "theater" : rawType;
+    return { city:(r[c.city]||"").trim(), name:(r[c.name]||"").trim(), type,
              date:d, time: fmtTime(r[c.time]), venue:(r[c.venue] || r[c.venueFallback] || "").trim(), perPerson: p2 > 0 ? p2/2 : NaN };
   }).filter(e => e.city && e.name && isFinite(e.perPerson) && !isNaN(e.date));
 }
-function parseCosts(buf){
-  const wb = XLSX.read(buf, { type:"array" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const grid = XLSX.utils.sheet_to_json(ws, { header:1, blankrows:true, defval:null });
-  const hdrIdx = grid.findIndex(r => r && norm(r[0]) === CONFIG.costs.metro);
-  if(hdrIdx < 0) throw new Error("The city costs sheet needs a header row that starts with \"Metro\".");
-  const hdr = grid[hdrIdx].map(norm);
-  const col = key => { const i = hdr.findIndex(h => h.includes(CONFIG.costs[key])); if(i<0) throw new Error("The city costs sheet has no column containing \""+CONFIG.costs[key]+"\"."); return i; };
-  const ix = { hotel:col("hotel"), meal:col("meal"), parking:col("parking"), transit:col("transit") };
-  const out = {};
-  for(let i = hdrIdx+1; i < grid.length; i++){
-    const r = grid[i]; if(!r || r[0] == null || String(r[0]).trim() === "") break;
-    out[String(r[0]).trim()] = { hotel:+r[ix.hotel], meal:+r[ix.meal], parking:+r[ix.parking], transit:+r[ix.transit] };
-  }
-  return out;
+function parseCosts(text){
+  const rows = Papa.parse(text, { header:true, skipEmptyLines:true, dynamicTyping:false }).data;
+  return Object.fromEntries(rows.map(r => [String(r[CONFIG.costs.metro] || "").trim(), {
+    hotel: +r[CONFIG.costs.hotel], meal: +r[CONFIG.costs.meal],
+    parking: +r[CONFIG.costs.parking], transit: +r[CONFIG.costs.transit]
+  }]).filter(([city]) => city));
 }
 // Matches an event city ("Houston") to a cost row ("Houston metro") without hard-coded names
 function matchCost(city, costs){
@@ -358,8 +350,8 @@ function matchCost(city, costs){
   const k = keys.find(k => norm(k) === c) || keys.find(k => norm(k).startsWith(c)) || keys.find(k => c.startsWith(norm(k)));
   return k ? costs[k] : null;
 }
-function init(evText, coBuf){
-  const ev = parseEvents(evText), co = parseCosts(coBuf);
+function init(evText, coText){
+  const ev = parseEvents(evText), co = parseCosts(coText);
   const missing = [...new Set(ev.map(e => e.city))].filter(c => !matchCost(c, co));
   EVENTS = ev.filter(e => matchCost(e.city, co));
   if(!EVENTS.length) throw new Error("No events matched a city in the city costs sheet.");

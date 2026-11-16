@@ -3,7 +3,27 @@ const CITY_COSTS = {
   "Los Angeles": { hotel: 169, meal: 26.5, parking: 40, transit: 1.75 },
   Chicago: { hotel: 233, meal: 20.5, parking: 45, transit: 2.5 },
   Houston: { hotel: 136, meal: 20.38, parking: 25, transit: 1.25 },
-  Phoenix: { hotel: 154, meal: 20, parking: 20, transit: 2 }
+  Phoenix: { hotel: 154, meal: 20, parking: 20, transit: 2 },
+  Dallas: { hotel: 155, meal: 22, parking: 30, transit: 3 },
+  Miami: { hotel: 230, meal: 25, parking: 40, transit: 2.25 },
+  Atlanta: { hotel: 165, meal: 20, parking: 25, transit: 2.5 },
+  Seattle: { hotel: 220, meal: 24, parking: 35, transit: 2.75 },
+  Boston: { hotel: 260, meal: 25, parking: 45, transit: 2.4 },
+  Philadelphia: { hotel: 190, meal: 22, parking: 35, transit: 2.5 },
+  Washington: { hotel: 225, meal: 24, parking: 40, transit: 2.25 },
+  "San Francisco": { hotel: 275, meal: 28, parking: 45, transit: 2.75 },
+  Detroit: { hotel: 145, meal: 18, parking: 25, transit: 2 },
+  Minneapolis: { hotel: 160, meal: 20, parking: 28, transit: 2.5 },
+  "San Diego": { hotel: 215, meal: 24, parking: 35, transit: 2.5 },
+  Tampa: { hotel: 175, meal: 21, parking: 30, transit: 2 },
+  Denver: { hotel: 185, meal: 22, parking: 32, transit: 2.75 },
+  Baltimore: { hotel: 165, meal: 20, parking: 30, transit: 2 },
+  "St. Louis": { hotel: 145, meal: 18, parking: 25, transit: 2.5 },
+  Charlotte: { hotel: 160, meal: 19, parking: 25, transit: 2.2 },
+  Orlando: { hotel: 185, meal: 22, parking: 30, transit: 2 },
+  "San Antonio": { hotel: 140, meal: 18, parking: 22, transit: 1.3 },
+  Portland: { hotel: 180, meal: 22, parking: 32, transit: 2.8 },
+  "Las Vegas": { hotel: 210, meal: 24, parking: 40, transit: 2 }
 };
 
 const CITY_COORDS = {
@@ -11,7 +31,14 @@ const CITY_COORDS = {
   "Los Angeles": [34.0522, -118.2437],
   Chicago: [41.8781, -87.6298],
   Houston: [29.7604, -95.3698],
-  Phoenix: [33.4484, -112.074]
+  Phoenix: [33.4484, -112.074],
+  Dallas: [32.7767, -96.797], Miami: [25.7617, -80.1918], Atlanta: [33.749, -84.388],
+  Seattle: [47.6062, -122.3321], Boston: [42.3601, -71.0589], Philadelphia: [39.9526, -75.1652],
+  Washington: [38.9072, -77.0369], "San Francisco": [37.7749, -122.4194], Detroit: [42.3314, -83.0458],
+  Minneapolis: [44.9778, -93.265], "San Diego": [32.7157, -117.1611], Tampa: [27.9506, -82.4572],
+  Denver: [39.7392, -104.9903], Baltimore: [39.2904, -76.6122], "St. Louis": [38.627, -90.1994],
+  Charlotte: [35.2271, -80.8431], Orlando: [28.5383, -81.3792], "San Antonio": [29.4241, -98.4936],
+  Portland: [45.5152, -122.6784], "Las Vegas": [36.1699, -115.1398]
 };
 
 const HOTEL_COSTS = {};
@@ -44,7 +71,7 @@ function parseCSV(text) {
 
 async function loadEvents() {
   const [response, hotelResponse] = await Promise.all([
-    fetch("data/major_event_ticket_prices.csv"),
+    fetch("data/synthetic_25_metro_real_event_prices.csv"),
     fetch("data/hotel_quality_costs.csv")
   ]);
   if (!response.ok) throw new Error(`Event data could not be loaded (${response.status}).`);
@@ -55,22 +82,30 @@ async function loadEvents() {
       upscale: Number(row.upscale), five_star: Number(row.five_star)
     };
   });
+  Object.entries(CITY_COSTS).forEach(([city, costs]) => {
+    if (!HOTEL_COSTS[city]) HOTEL_COSTS[city] = {
+      motel: Math.round(costs.hotel * 0.7), standard: costs.hotel,
+      upscale: Math.round(costs.hotel * 1.55), five_star: Math.round(costs.hotel * 2.4)
+    };
+  });
   return parseCSV(await response.text()).map(row => {
-    const priceForTwo = Number(row.last_valid_ticket_cost_for_two || row.current_ticket_cost_for_two);
+    const priceForTwo = Number(row.synthetic_ticket_cost_for_two || row.last_valid_ticket_cost_for_two || row.current_ticket_cost_for_two);
+    const sourceType = row.analysis_category || row.event_type || "event";
+    const type = sourceType === "music" ? "concert" : sourceType === "stage" ? "theater" : sourceType;
     return {
-      city: row.pilot_city,
-      state: row.pilot_state,
+      city: row.metro || row.pilot_city,
+      state: row.state || row.pilot_state,
       id: row.event_id,
       name: row.event_name,
       performer: row.performer || row.event_name,
-      type: row.event_type || "event",
+      type,
       date: new Date(`${row.event_date}T${row.event_time || "12:00:00"}`),
       venue: row.canonical_major_venue || row.venue_name,
       venueClass: row.venue_class || "",
-      venueCity: row.venue_city || row.pilot_city,
+      venueCity: row.venue_city || row.metro || row.pilot_city,
       venueState: row.venue_state || "",
-      lat: Number(row.venue_lat),
-      lng: Number(row.venue_lng),
+      lat: Number(row.venue_lat) || CITY_COORDS[row.metro || row.pilot_city]?.[0],
+      lng: Number(row.venue_lng) || CITY_COORDS[row.metro || row.pilot_city]?.[1],
       ticket: priceForTwo / 2
     };
   }).filter(event => event.city && event.name && Number.isFinite(event.ticket));
@@ -191,7 +226,7 @@ function siteHeader(active) {
 }
 
 function siteFooter() {
-  return `<footer class="site-footer"><span>CSCE 447 project prototype</span><span>Sample prices · updated October 2026</span></footer>`;
+  return `<footer class="site-footer"><span>CSCE 447 project prototype</span><span>Real event listings · synthetic prices · updated November 2026</span></footer>`;
 }
 
 function showLoadError(target, error) {

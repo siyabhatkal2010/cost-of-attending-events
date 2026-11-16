@@ -1,0 +1,26 @@
+metro,state,ticket_price_factor,hotel_per_night,inexpensive_meal,parking_per_day,transit_one_way,gas_per_gallon,data_status
+New York,NY,1.3,336,25,65,3,3.97,Synthetic planning assumption
+Los Angeles,CA,1.2,169,26.5,40,1.75,6.02,Synthetic planning assumption
+Chicago,IL,1.05,233,20.5,45,2.5,4.66,Synthetic planning assumption
+Houston,TX,0.9,136,20.38,25,1.25,3.52,Synthetic planning assumption
+Phoenix,AZ,0.92,154,20,20,2,4.54,Synthetic planning assumption
+Dallas,TX,0.98,155,22,30,3,3.1,Synthetic planning assumption
+Miami,FL,1.16,230,25,40,2.25,3.3,Synthetic planning assumption
+Atlanta,GA,0.92,165,20,25,2.5,3.05,Synthetic planning assumption
+Seattle,WA,1.08,220,24,35,2.75,4.2,Synthetic planning assumption
+Boston,MA,1.2,260,25,45,2.4,3.4,Synthetic planning assumption
+Philadelphia,PA,1.05,190,22,35,2.5,3.25,Synthetic planning assumption
+Washington,DC,1.1,225,24,40,2.25,3.3,Synthetic planning assumption
+San Francisco,CA,1.25,275,28,45,2.75,5.2,Synthetic planning assumption
+Detroit,MI,0.88,145,18,25,2,3.2,Synthetic planning assumption
+Minneapolis,MN,0.93,160,20,28,2.5,3.1,Synthetic planning assumption
+San Diego,CA,1.05,215,24,35,2.5,4.9,Synthetic planning assumption
+Tampa,FL,0.9,175,21,30,2,3.2,Synthetic planning assumption
+Denver,CO,1.02,185,22,32,2.75,3.15,Synthetic planning assumption
+Baltimore,MD,0.9,165,20,30,2,3.25,Synthetic planning assumption
+St. Louis,MO,0.87,145,18,25,2.5,2.95,Synthetic planning assumption
+Charlotte,NC,0.9,160,19,25,2.2,3,Synthetic planning assumption
+Orlando,FL,0.98,185,22,30,2,3.15,Synthetic planning assumption
+San Antonio,TX,0.85,140,18,22,1.3,2.95,Synthetic planning assumption
+Portland,OR,0.98,180,22,32,2.8,4.25,Synthetic planning assumption
+Las Vegas,NV,1.12,210,24,40,2,4,Synthetic planning assumption

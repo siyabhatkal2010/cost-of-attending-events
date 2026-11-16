@@ -13,7 +13,9 @@ function renderCostScatter(events, travelers, mode, selectedId, onSelect, hotelC
   const x = value => left + value/maxX*plotW;
   const y = value => top + plotH - value/maxY*plotH;
   const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const colors = {'New York':'#78aefc','Los Angeles':'#ff8052','Chicago':'#38c997','Houston':'#ad8aff','Phoenix':'#f0c674'};
+  const palette = ['#78aefc','#ff8052','#38c997','#ad8aff','#f0c674','#ef6f9a','#5fd1c8','#f6a04d','#8fc76b','#6fa8dc'];
+  const cityNames = [...new Set(events.map(event => event.city))].sort();
+  const colors = Object.fromEntries(cityNames.map((city, index) => [city, palette[index % palette.length]]));
   let svg = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Scatterplot of ticket costs versus local trip costs for ${travelers} traveler(s), using ${mode === 'drive'?'parking':'transit'}" xmlns="http://www.w3.org/2000/svg">`;
   for(let i=0;i<=4;i++) {
     const vx=maxX*i/4, vy=maxY*i/4, gx=x(vx), gy=y(vy);
