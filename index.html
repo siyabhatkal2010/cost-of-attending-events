@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,500..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
   <div id="header"></div>
@@ -32,14 +32,15 @@
           <label class="field"><span>Hotel</span><select id="hotelClass"><option value="motel">Motel / budget</option><option value="standard" selected>Standard hotel</option><option value="upscale">Upscale hotel</option><option value="five_star">Five-star hotel</option></select></label>
           <label class="field"><span>Home</span><select id="homeCity"><option value="">Outside these cities</option></select></label>
           <label class="field"><span>Local travel</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option></select></label>
+          <label class="field field-wide range-field"><span>Max trip cost <b id="budgetValue">Any</b></span><input id="budgetRange" type="range" min="0" max="100" step="25" value="100" aria-describedby="budgetHelp"><small class="field-help" id="budgetHelp">Filters on the full estimate, not the ticket alone.</small></label>
+          <label class="field field-wide range-field"><span>Max distance from home <b id="distanceValue">Any</b></span><input id="distanceRange" type="range" min="0" max="100" step="25" value="100" disabled aria-describedby="distanceHelp"><small class="field-help" id="distanceHelp">Pick a home city to filter by distance.</small></label>
         </div>
         <p class="compact-note">Hotel cost is removed when the event is in your selected home city.</p>
       </aside>
 
       <section class="dashboard-card map-card" aria-labelledby="map-title">
         <div class="card-heading map-heading">
-          <div><span>02</span><h2 id="map-title">Where can you see it?</h2></div>
-          <div class="map-toggle" role="group" aria-label="Map view"><button type="button" id="eventViewBtn" class="map-toggle-btn active" aria-pressed="true">Event cities</button><button type="button" id="costViewBtn" class="map-toggle-btn" aria-pressed="false">All costs</button></div>
+          <div><span>02</span><h2 id="map-title">Where can you go?</h2></div>
         </div>
         <p id="mapUnit" class="card-meta">Average trip</p>
         <div class="map-shell"><div id="eventMap" role="region" aria-label="Map of average event-trip costs by city"></div><div class="map-label" id="mapLabel">Totals include tickets, meals and parking.</div></div>
@@ -78,7 +79,7 @@
   </main>
   <div id="footer"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="site.js?v=6"></script>
+  <script src="site.js?v=7"></script>
   <script src="cost-scatter.js?v=3"></script>
   <script src="calendar-heatmap.js?v=3"></script>
   <script src="dashboard-viz.js?v=2"></script>
@@ -94,9 +95,15 @@
     const hotelClassSelect = document.getElementById("hotelClass");
     const homeCitySelect = document.getElementById("homeCity");
     const modeSelect = document.getElementById("travelMode");
+    const budgetRange = document.getElementById("budgetRange");
+    const budgetValue = document.getElementById("budgetValue");
+    const budgetHelp = document.getElementById("budgetHelp");
+    const distanceRange = document.getElementById("distanceRange");
+    const distanceValue = document.getElementById("distanceValue");
+    const distanceHelp = document.getElementById("distanceHelp");
+    let budgetUnlimited = true, distanceUnlimited = true;
     let EVENTS = [];
     let leafletMap;
-    let mapView = "event";
     const mapMarkers = new Map();
 
     function option(value, label) { return `<option value="${value}">${label}</option>`; }
@@ -104,12 +111,103 @@
       const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, "0"), d = String(date.getDate()).padStart(2, "0");
       return `${y}-${m}-${d}`;
     }
+
+    /* ---------- Budget and distance filters ----------
+       Both sliders sit at their maximum when off, so "Any" means no limit. Budget compares
+       the whole trip estimate, which moves with travelers, hotel class and travel mode, so
+       the slider is rescaled from the data whenever those change. Distance needs a home
+       city to measure from, so that slider stays disabled until one is picked. */
+    const RANGE_STEP = 25;
+
+    function costSettings() {
+      return { n: Number(travelersSelect.value), mode: modeSelect.value, hotelClass: hotelClassSelect.value, homeCity: homeCitySelect.value };
+    }
+    function budgetLimit() { return budgetUnlimited ? Infinity : Number(budgetRange.value); }
+    function distanceLimit() { return distanceUnlimited ? Infinity : Number(distanceRange.value); }
+    function passesCostFilters(event, n, mode, hotelClass, homeCity) {
+      if (tripCost(event, n, mode, hotelClass, homeCity).total > budgetLimit()) return false;
+      const miles = eventDistance(event, homeCity);
+      return miles === null || miles <= distanceLimit();
+    }
+    function costFilteredEvents() {
+      const { n, mode, hotelClass, homeCity } = costSettings();
+      return EVENTS.filter(event => passesCostFilters(event, n, mode, hotelClass, homeCity));
+    }
+    function updateBudgetLabel() {
+      budgetUnlimited = Number(budgetRange.value) >= Number(budgetRange.max);
+      budgetValue.textContent = budgetUnlimited ? "Any" : `Up to ${money(Number(budgetRange.value))}`;
+    }
+    function updateDistanceLabel() {
+      distanceUnlimited = distanceRange.disabled || Number(distanceRange.value) >= Number(distanceRange.max);
+      distanceValue.textContent = distanceUnlimited ? "Any" : `Within ${milesLabel(Number(distanceRange.value))}`;
+    }
+    function scaleBudgetRange() {
+      if (!EVENTS.length) return;
+      const { n, mode, hotelClass, homeCity } = costSettings();
+      const totals = EVENTS.filter(event => event.type === categorySelect.value)
+        .map(event => tripCost(event, n, mode, hotelClass, homeCity).total);
+      if (!totals.length) return;
+      // Round the low end UP, so the slider's leftmost stop still includes the cheapest
+      // event instead of sitting just below it and matching nothing.
+      const cheapest = Math.min(...totals), priciest = Math.max(...totals);
+      const low = Math.ceil(cheapest / RANGE_STEP) * RANGE_STEP;
+      const high = Math.max(low, Math.ceil(priciest / RANGE_STEP) * RANGE_STEP);
+      const wasUnlimited = budgetUnlimited;
+      budgetRange.min = low; budgetRange.max = high; budgetRange.step = RANGE_STEP;
+      budgetRange.value = wasUnlimited ? high : Math.min(Math.max(Number(budgetRange.value), low), high);
+      budgetHelp.textContent = `Whole trip for ${n} ${n === 1 ? "person" : "people"}. These events run ${money(cheapest)} to ${money(priciest)}.`;
+      updateBudgetLabel();
+    }
+    function scaleDistanceRange() {
+      const homeCity = homeCitySelect.value;
+      const distances = EVENTS.map(event => eventDistance(event, homeCity)).filter(Number.isFinite);
+      if (!distances.length) {
+        distanceRange.disabled = true; distanceUnlimited = true;
+        distanceValue.textContent = "Any";
+        distanceHelp.textContent = "Pick a home city to filter by distance.";
+        return;
+      }
+      const wasUnlimited = distanceUnlimited || distanceRange.disabled;
+      const furthest = Math.max(...distances);
+      const high = Math.max(RANGE_STEP, Math.ceil(furthest / RANGE_STEP) * RANGE_STEP);
+      distanceRange.disabled = false;
+      distanceRange.min = 0; distanceRange.max = high; distanceRange.step = RANGE_STEP;
+      distanceRange.value = wasUnlimited ? high : Math.min(Number(distanceRange.value), high);
+      distanceHelp.textContent = `Straight-line miles from ${homeCity}. Furthest event is ${milesLabel(furthest)}.`;
+      updateDistanceLabel();
+    }
+    function clearCostFilters() {
+      budgetUnlimited = true; distanceUnlimited = true;
+      budgetRange.value = budgetRange.max;
+      if (!distanceRange.disabled) distanceRange.value = distanceRange.max;
+      updateBudgetLabel(); updateDistanceLabel();
+    }
+    function activeLimitPhrases() {
+      const phrases = [];
+      if (!budgetUnlimited) phrases.push(`under ${money(Number(budgetRange.value))}`);
+      if (!distanceUnlimited) phrases.push(`within ${milesLabel(Number(distanceRange.value))} of ${homeCitySelect.value}`);
+      return phrases;
+    }
+    function activeFilterSummary() {
+      const phrases = activeLimitPhrases();
+      return phrases.length ? ` · ${phrases.join(" · ")}` : "";
+    }
+    function drawScatter(list, selectedId, n, mode, hotelClass, homeCity) {
+      if (!list.length) {
+        document.getElementById("costScatter").innerHTML = `<p class="empty-estimate">No events fit the budget and distance limits.</p>`;
+        document.getElementById("scatterCount").textContent = "0 sample events";
+        return;
+      }
+      renderCostScatter(list, n, mode, selectedId, chooseEvent, hotelClass, homeCity);
+    }
     function filteredEvents() {
       const query = eventSearch.value.trim().toLowerCase(), after = eventDate.value;
+      const { n, mode, hotelClass, homeCity } = costSettings();
       return EVENTS.filter(event => event.type === categorySelect.value)
         .filter(event => !subtypeSelect.value || subtypeOf(event) === subtypeSelect.value)
         .filter(event => !query || `${event.name} ${event.performer} ${event.city} ${event.venue}`.toLowerCase().includes(query))
         .filter(event => !after || localDateKey(event.date) >= after)
+        .filter(event => passesCostFilters(event, n, mode, hotelClass, homeCity))
         .sort((a,b) => a.date - b.date);
     }
     function updateCategoryControls() {
@@ -121,12 +219,20 @@
       const dates = EVENTS.filter(event => event.type === categorySelect.value).map(event => localDateKey(event.date)).sort();
       eventDate.min = dates[0] || ""; eventDate.max = dates.at(-1) || "";
     }
-    function fillEvents(preferredId) {
+    function fillEvents(preferredId, repickCheapest) {
       const previousId = preferredId || eventSelect.value, filtered = filteredEvents();
       eventSelect.innerHTML = filtered.length ? filtered.map(e => option(e.id, `${e.name} — ${e.city} · ${dateLabel(e.date)}`)).join("") : option("", "No matching events");
       eventSelect.disabled = !filtered.length;
       const keptPrevious = previousId && filtered.some(e => e.id === previousId);
-      if (keptPrevious) eventSelect.value = previousId;
+      if (keptPrevious) {
+        eventSelect.value = previousId;
+        if (repickCheapest) {
+          const visible = new Set(filtered.map(e => e.id));
+          const { n, mode, hotelClass, homeCity } = costSettings();
+          const cheaper = cityOptionsFor(selectedEvent(), n, mode, hotelClass, homeCity).filter(choice => visible.has(choice.event.id));
+          if (cheaper.length) eventSelect.value = cheaper[0].event.id;
+        }
+      }
       else if (filtered.length) {
         const first = filtered[0];
         const sameEvent = filtered.filter(candidate => candidate.name === first.name);
@@ -137,18 +243,20 @@
           eventSelect.value = sameEvent[0].id;
         }
       }
-      document.getElementById("eventCount").textContent = `${filtered.length} matching event${filtered.length === 1 ? "" : "s"}`;
+      document.getElementById("eventCount").textContent = `${filtered.length} matching event${filtered.length === 1 ? "" : "s"}${activeFilterSummary()}`;
       render();
     }
     function chooseEvent(event) {
       categorySelect.value = event.type;
       eventSearch.value = ""; eventDate.value = ""; subtypeSelect.value = "";
-      updateCategoryControls(); fillEvents(event.id);
+      const { n, mode, hotelClass, homeCity } = costSettings();
+      if (!passesCostFilters(event, n, mode, hotelClass, homeCity)) clearCostFilters();
+      scaleBudgetRange(); updateCategoryControls(); fillEvents(event.id);
     }
     function selectedEvent() { return EVENTS.find(e => e.id === eventSelect.value) || null; }
     function cityOptionsFor(event, n, mode, hotelClass, homeCity) {
       const byCity = new Map();
-      EVENTS.filter(candidate => candidate.name === event.name).forEach(candidate => {
+      EVENTS.filter(candidate => candidate.name === event.name && passesCostFilters(candidate, n, mode, hotelClass, homeCity)).forEach(candidate => {
         const cost = tripCost(candidate, n, mode, hotelClass, homeCity);
         const current = byCity.get(candidate.city);
         if (!current || cost.total < current.cost.total) byCity.set(candidate.city, { event: candidate, cost });
@@ -156,11 +264,8 @@
       return [...byCity.values()].sort((a, b) => a.cost.total - b.cost.total);
     }
     function updateForCostControls() {
-      const event = selectedEvent();
-      if (!event) { render(); return; }
-      const options = cityOptionsFor(event, Number(travelersSelect.value), modeSelect.value, hotelClassSelect.value, homeCitySelect.value);
-      if (options.length > 1) eventSelect.value = options[0].event.id;
-      render();
+      scaleBudgetRange(); scaleDistanceRange();
+      fillEvents(eventSelect.value, true);
     }
     function initMap() {
       if (!window.L) {
@@ -178,9 +283,10 @@
       const bestCityCallout = document.getElementById("bestCityCallout");
       if (!event) {
         bestCityCallout.hidden = true;
-        document.getElementById("estimate").innerHTML = `<p class="empty-estimate"><strong>No events match those filters.</strong><br>Try another search or date.</p>`;
+        const limits = activeLimitPhrases();
+        document.getElementById("estimate").innerHTML = `<p class="empty-estimate"><strong>No events match those filters.</strong><br>${limits.length ? `Nothing is ${limits.join(" and ")}.<br><button type="button" class="link-button" id="clearCostFilters">Clear budget and distance</button>` : "Try another search or date."}</p>`;
         renderMap(null);
-        renderCostScatter(EVENTS, n, mode, "", chooseEvent, hotelClass, homeCity);
+        drawScatter(costFilteredEvents(), "", n, mode, hotelClass, homeCity);
         renderSelectionVizzes(EVENTS, null, n, mode, hotelClass, homeCity);
         return;
       }
@@ -196,65 +302,71 @@
         <div class="estimate-actions"><a class="rule-link" href="${performerHref(event.performer, event.type)}">Compare this ${categoryOf(event.type).noun}</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
         <p class="data-note">Prototype estimate excludes airfare, taxes and fees. ${cost.isHomeCity ? `Lodging is removed because ${event.city} is your selected home city.` : "Hotel-class rates are sample planning estimates."}</p>`;
       renderMap(event);
-      renderCostScatter(EVENTS, n, mode, event.id, chooseEvent, hotelClass, homeCity);
+      drawScatter(costFilteredEvents(), event.id, n, mode, hotelClass, homeCity);
       renderSelectionVizzes(EVENTS, event, n, mode, hotelClass, homeCity);
     }
-    function cityMarkerIcon(city, average, active) {
-      const slug = city.toLowerCase().replace(/[^a-z]+/g, "-");
-      return L.divIcon({
-        className: `city-cost-marker city-${slug}${active ? " active" : ""}`,
-        html: `<span class="marker-dot"></span><span class="marker-label"><b>${city}</b><strong>${money(average)} avg.</strong></span>`,
-        iconSize: [0, 0], iconAnchor: [0, 0]
-      });
+    /* ---------- Map of every matching event ----------
+       One circle per city holding events that pass the filters. Circle area grows with how
+       many events are there; colour runs green (cheapest trip in that city) to orange
+       (priciest). Hovering lists who is playing; clicking plans that city's cheapest. */
+    const COST_COLORS = ["#38c997", "#f0c674", "#ff8052"];
+    const TOOLTIP_ROWS = 5;
+
+    // The map clips anything outside it, so a tooltip on a northern city would lose its
+    // heading off the top edge. Drop it below the pin when the pin sits high in the frame.
+    function tooltipDirection(latlng) {
+      const point = leafletMap.latLngToContainerPoint(latlng);
+      return point.y < leafletMap.getSize().y * 0.5 ? "bottom" : "top";
     }
-    function renderMap(event) {
+
+    function cityTooltipHTML(city, priced) {
+      const rows = priced.slice(0, TOOLTIP_ROWS).map(({ event, total }) =>
+        `<li><b>${escapeHTML(event.performer)}</b><span>${escapeHTML(dateLabel(event.date))} · ${escapeHTML(event.venue)}</span><strong>${money(total)}</strong></li>`).join("");
+      const more = priced.length > TOOLTIP_ROWS ? `<p class="tooltip-more">+ ${priced.length - TOOLTIP_ROWS} more here</p>` : "";
+      return `<div class="city-events"><p class="tooltip-head">${escapeHTML(city)}<span>${priced.length} event${priced.length === 1 ? "" : "s"} · from ${money(priced[0].total)}</span></p><ul>${rows}</ul>${more}</div>`;
+    }
+    function renderMap(selected) {
       if (!leafletMap) return;
-      const n = Number(travelersSelect.value), mode = modeSelect.value, hotelClass = hotelClassSelect.value, homeCity = homeCitySelect.value;
+      const { n, mode, hotelClass, homeCity } = costSettings();
       mapMarkers.forEach(marker => { if (leafletMap.hasLayer(marker)) leafletMap.removeLayer(marker); });
       mapMarkers.clear();
-      if (mapView === "cost") {
-        renderCostMap(event, n, mode, hotelClass, homeCity);
+      const byCity = new Map();
+      filteredEvents().forEach(event => {
+        if (!CITY_COORDS[event.city]) return;
+        if (!byCity.has(event.city)) byCity.set(event.city, []);
+        byCity.get(event.city).push({ event, total: tripCost(event, n, mode, hotelClass, homeCity).total });
+      });
+      const cities = [...byCity].map(([city, priced]) => {
+        priced.sort((a, b) => a.total - b.total);
+        return { city, priced, cheapest: priced[0].total };
+      });
+      const total = cities.reduce((sum, item) => sum + item.priced.length, 0);
+      if (!cities.length) {
+        document.getElementById("mapUnit").textContent = "No events fit these filters";
+        document.getElementById("mapLabel").innerHTML = `<strong>Nothing to show</strong>Raise the budget or distance limit, or clear the search.`;
         return;
       }
-      const matchingEvents = event ? EVENTS.filter(candidate => candidate.name === event.name) : [];
-      const cities = unique(matchingEvents.map(candidate => candidate.city));
-      document.getElementById("mapUnit").textContent = `${cities.length} ${cities.length === 1 ? "city" : "cities"} · ${n} ${n === 1 ? "traveler" : "travelers"}`;
-      cities.forEach(city => {
-        const cityEvents = matchingEvents.filter(candidate => candidate.city === city);
-        const average = cityEvents.reduce((sum, candidate) => sum + tripCost(candidate, n, mode, hotelClass, homeCity).total, 0) / cityEvents.length;
-        const active = event && city === event.city;
-        const marker = L.marker(CITY_COORDS[city], { icon: cityMarkerIcon(city, average, active), interactive: false, keyboard: false, zIndexOffset: active ? 1000 : 0 });
-        marker.addTo(leafletMap); mapMarkers.set(city, marker);
+      const prices = cities.map(item => item.cheapest), low = Math.min(...prices), high = Math.max(...prices), span = high - low;
+      const mostEvents = Math.max(...cities.map(item => item.priced.length));
+      cities.forEach(item => {
+        const share = span ? (item.cheapest - low) / span : 0;
+        const active = Boolean(selected) && item.city === selected.city;
+        const marker = L.circleMarker(CITY_COORDS[item.city], {
+          radius: 8 + Math.sqrt(item.priced.length / mostEvents) * 15,
+          color: active ? "#f4ecdf" : "#0d1114", weight: active ? 3 : 1.5,
+          fillColor: COST_COLORS[share < 1 / 3 ? 0 : share < 2 / 3 ? 1 : 2], fillOpacity: .85
+        });
+        marker.bindTooltip(cityTooltipHTML(item.city, item.priced),
+          { direction: tooltipDirection(CITY_COORDS[item.city]), className: "city-events-tooltip", opacity: 1 });
+        marker.on("click", () => { eventSelect.value = item.priced[0].event.id; render(); });
+        marker.addTo(leafletMap);
+        if (active) marker.bringToFront();
+        mapMarkers.set(item.city, marker);
       });
-      document.getElementById("mapLabel").textContent = "Totals include tickets, meals and parking.";
+      document.getElementById("mapUnit").textContent = `${total} event${total === 1 ? "" : "s"} in ${cities.length} ${cities.length === 1 ? "city" : "cities"} · ${n} ${n === 1 ? "traveler" : "travelers"}`;
+      document.getElementById("mapLabel").innerHTML = `<strong>Hover a city</strong>Bigger circle means more events. Green is the cheapest trip, orange the priciest. Click to plan that city's cheapest.`;
     }
-    function renderCostMap(event, n, mode, hotelClass, homeCity) {
-      const cityAverages = unique(EVENTS.map(candidate => candidate.city)).map(city => {
-        const cityEvents = EVENTS.filter(candidate => candidate.city === city);
-        const average = cityEvents.reduce((sum, candidate) => sum + tripCost(candidate, n, mode, hotelClass, homeCity).total, 0) / cityEvents.length;
-        return { city, average };
-      });
-      const values = cityAverages.map(item => item.average), min = Math.min(...values), max = Math.max(...values), range = max - min;
-      cityAverages.forEach(item => {
-        const ratio = range ? (item.average - min) / range : 0.5;
-        const radius = 12 + (item.average / max) * 16;
-        const color = ratio < .33 ? "#38c997" : ratio < .67 ? "#f0c674" : "#ff8052";
-        const marker = L.circleMarker(CITY_COORDS[item.city], { radius, color: event?.city === item.city ? "#f4ecdf" : "#78aefc", weight: 3, fillColor: color, fillOpacity: .9, interactive: false, keyboard: false });
-        marker.bindTooltip(`${item.city} · ${money(item.average)} avg.`, { permanent: true, direction: item.city === "New York" ? "left" : "right", className: "city-tooltip" });
-        marker.addTo(leafletMap); mapMarkers.set(item.city, marker);
-      });
-      document.getElementById("mapUnit").textContent = `${cityAverages.length} cities · ${n} ${n === 1 ? "traveler" : "travelers"}`;
-      document.getElementById("mapLabel").textContent = "Totals include tickets, meals and parking.";
-    }
-    function setMapView(view) {
-      mapView = view;
-      document.getElementById("eventViewBtn").classList.toggle("active", view === "event");
-      document.getElementById("costViewBtn").classList.toggle("active", view === "cost");
-      document.getElementById("eventViewBtn").setAttribute("aria-pressed", String(view === "event"));
-      document.getElementById("costViewBtn").setAttribute("aria-pressed", String(view === "cost"));
-      render();
-    }
-    categorySelect.addEventListener("change", () => { eventSearch.value = ""; eventDate.value = ""; subtypeSelect.value = ""; updateCategoryControls(); fillEvents(); });
+    categorySelect.addEventListener("change", () => { eventSearch.value = ""; eventDate.value = ""; subtypeSelect.value = ""; scaleBudgetRange(); updateCategoryControls(); fillEvents(); });
     subtypeSelect.addEventListener("change", () => fillEvents());
     eventSearch.addEventListener("input", () => fillEvents());
     eventDate.addEventListener("change", () => fillEvents());
@@ -263,10 +375,15 @@
     hotelClassSelect.addEventListener("change", updateForCostControls);
     homeCitySelect.addEventListener("change", updateForCostControls);
     modeSelect.addEventListener("change", updateForCostControls);
-    document.getElementById("eventViewBtn").addEventListener("click", () => setMapView("event"));
-    document.getElementById("costViewBtn").addEventListener("click", () => setMapView("cost"));
+    budgetRange.addEventListener("input", updateBudgetLabel);
+    budgetRange.addEventListener("change", () => { updateBudgetLabel(); fillEvents(eventSelect.value); });
+    distanceRange.addEventListener("input", updateDistanceLabel);
+    distanceRange.addEventListener("change", () => { updateDistanceLabel(); fillEvents(eventSelect.value); });
+    document.getElementById("estimate").addEventListener("click", clickEvent => {
+      if (clickEvent.target.id === "clearCostFilters") { clearCostFilters(); fillEvents(); }
+    });
     initMap();
-    loadEvents().then(events => { EVENTS = events; homeCitySelect.innerHTML = option("", "Outside these cities") + unique(EVENTS.map(event => event.city)).map(city => option(city, city)).join(""); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; categorySelect.value = featured.type; updateCategoryControls(); fillEvents(featured.id); initCalendarHeatmap(EVENTS, chooseEvent); }).catch(error => showLoadError(document.querySelector(".filter-card"), error));
+    loadEvents().then(events => { EVENTS = events; homeCitySelect.innerHTML = option("", "Outside these cities") + unique(EVENTS.map(event => event.city)).map(city => option(city, city)).join(""); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; categorySelect.value = featured.type; scaleBudgetRange(); scaleDistanceRange(); updateCategoryControls(); fillEvents(featured.id); initCalendarHeatmap(EVENTS, chooseEvent); }).catch(error => showLoadError(document.querySelector(".filter-card"), error));
   </script>
 </body>
 </html>

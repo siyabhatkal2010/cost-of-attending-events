@@ -138,6 +138,33 @@ function dateLabel(date) {
 function byName(a, b) { return a.localeCompare(b, undefined, { sensitivity: "base" }); }
 function unique(values) { return [...new Set(values)].sort(byName); }
 
+/* ---------- Distance from a home city ----------
+   Great-circle (haversine) miles from the user's home city to an event's venue, used by
+   the distance filter. Returns null when no home city is picked or the venue has no
+   coordinates, so callers can skip the filter instead of guessing a distance. */
+const EARTH_RADIUS_MILES = 3958.8;
+
+function haversineMiles(fromLat, fromLng, toLat, toLng) {
+  const toRadians = degrees => degrees * Math.PI / 180;
+  const deltaLat = toRadians(toLat - fromLat), deltaLng = toRadians(toLng - fromLng);
+  const a = Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(toRadians(fromLat)) * Math.cos(toRadians(toLat)) * Math.sin(deltaLng / 2) ** 2;
+  return EARTH_RADIUS_MILES * 2 * Math.asin(Math.sqrt(a));
+}
+
+function eventDistance(event, homeCity) {
+  const home = CITY_COORDS[homeCity];
+  if (!home) return null;
+  const lat = Number.isFinite(event.lat) ? event.lat : CITY_COORDS[event.city]?.[0];
+  const lng = Number.isFinite(event.lng) ? event.lng : CITY_COORDS[event.city]?.[1];
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return haversineMiles(home[0], home[1], lat, lng);
+}
+
+function milesLabel(miles) {
+  return `${Math.round(miles).toLocaleString("en-US")} mi`;
+}
+
 
 /* ---------- Event-type segmentation ----------
    The CSV's event_type maps to three user-facing categories. Subtypes are derived on the
