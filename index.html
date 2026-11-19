@@ -31,7 +31,7 @@
           <label class="field"><span>Travelers</span><select id="travelers"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
           <label class="field"><span>Hotel</span><select id="hotelClass"><option value="motel">Motel / budget</option><option value="standard" selected>Standard hotel</option><option value="upscale">Upscale hotel</option><option value="five_star">Five-star hotel</option></select></label>
           <label class="field"><span>Home</span><select id="homeCity"><option value="">Outside these cities</option></select></label>
-          <label class="field"><span>Local travel</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option></select></label>
+          <label class="field"><span>Local travel</span><select id="travelMode"><option value="drive">Drive + park</option><option value="transit">Public transit</option><option value="flight" id="flightOption" disabled>Flight (pick a home city)</option></select></label>
           <label class="field field-wide range-field"><span>Max trip cost <b id="budgetValue">Any</b></span><input id="budgetRange" type="range" min="0" max="100" step="25" value="100" aria-describedby="budgetHelp"><small class="field-help" id="budgetHelp">Filters on the full estimate, not the ticket alone.</small></label>
           <label class="field field-wide range-field"><span>Max distance from home <b id="distanceValue">Any</b></span><input id="distanceRange" type="range" min="0" max="100" step="25" value="100" disabled aria-describedby="distanceHelp"><small class="field-help" id="distanceHelp">Pick a home city to filter by distance.</small></label>
         </div>
@@ -125,7 +125,9 @@
     function budgetLimit() { return budgetUnlimited ? Infinity : Number(budgetRange.value); }
     function distanceLimit() { return distanceUnlimited ? Infinity : Number(distanceRange.value); }
     function passesCostFilters(event, n, mode, hotelClass, homeCity) {
-      if (tripCost(event, n, mode, hotelClass, homeCity).total > budgetLimit()) return false;
+      const cost = tripCost(event, n, mode, hotelClass, homeCity);
+      if (cost.airfareMissing) return false;   // no fare for this route, so we can't price the trip
+      if (cost.total > budgetLimit()) return false;
       const miles = eventDistance(event, homeCity);
       return miles === null || miles <= distanceLimit();
     }
@@ -263,7 +265,14 @@
       });
       return [...byCity.values()].sort((a, b) => a.cost.total - b.cost.total);
     }
+    function syncFlightOption() {
+      const hasHome = Boolean(homeCitySelect.value), flightOption = document.getElementById("flightOption");
+      flightOption.disabled = !hasHome;
+      flightOption.textContent = hasHome ? "Flight" : "Flight (pick a home city)";
+      if (!hasHome && modeSelect.value === "flight") modeSelect.value = "drive";
+    }
     function updateForCostControls() {
+      syncFlightOption();  
       scaleBudgetRange(); scaleDistanceRange();
       fillEvents(eventSelect.value, true);
     }
@@ -298,9 +307,9 @@
         bestCityCallout.innerHTML = `<span>Cheapest of ${cityOptions.length} cities</span><strong>${escapeHTML(best.event.city)} · ${money(best.cost.total)}</strong><small>${money(savings)} less than ${escapeHTML(highest.event.city)} for this trip setup</small>`;
       } else bestCityCallout.hidden = true;
       document.getElementById("estimate").innerHTML = `<div class="estimate-top"><span>Estimated total for ${n} ${n === 1 ? "person" : "people"}</span><strong class="estimate-total">${money(cost.total)}</strong></div>
-        <ul class="breakdown"><li><span>Tickets · ${n} × ${money(event.ticket)}</span><strong>${money(cost.tickets)}</strong></li><li><span>${hotelCostLabel(cost)}</span><strong>${money(cost.hotel)}</strong></li><li><span>Meals</span><strong>${money(cost.meals)}</strong></li><li><span>${mode === "drive" ? "Parking" : "Round-trip transit"}</span><strong>${money(cost.localTravel)}</strong></li></ul>
+        <ul class="breakdown"><li><span>Tickets · ${n} × ${money(event.ticket)}</span><strong>${money(cost.tickets)}</strong></li><li><span>${hotelCostLabel(cost)}</span><strong>${money(cost.hotel)}</strong></li><li><span>Meals</span><strong>${money(cost.meals)}</strong></li>${mode === "flight" && !cost.isHomeCity ? `<li><span>Airfare · ${n} × ${money(cost.farePerPerson)} avg. fare</span><strong>${money(cost.airfare)}</strong></li>` : ""}<li><span>${localTravelLabel(mode, true)}</span><strong>${money(cost.localTravel)}</strong></li></ul></ul>
         <div class="estimate-actions"><a class="rule-link" href="${performerHref(event.performer, event.type)}">Compare this ${categoryOf(event.type).noun}</a><a class="rule-link" href="cities.html?city=${encodeURIComponent(event.city)}">Explore ${event.city}</a></div>
-        <p class="data-note">Prototype estimate excludes airfare, taxes and fees. ${cost.isHomeCity ? `Lodging is removed because ${event.city} is your selected home city.` : "Hotel-class rates are sample planning estimates."}</p>`;
+        <p class="data-note">Prototype estimate excludes taxes and fees. ${mode === "flight" ? (cost.isHomeCity ? "No airfare because the event is in your home city. " : `Airfare is the average fare between ${escapeHTML(homeCity)} and ${escapeHTML(event.city)} (${FLIGHT_FARE_PERIOD}; treated as round-trip per person). Events in cities with no fare data are hidden. `) : "Excludes airfare. "}${cost.isHomeCity ? `Lodging is removed because ${event.city} is your selected home city.` : "Hotel-class rates are sample planning estimates."}</p>`;
       renderMap(event);
       drawScatter(costFilteredEvents(), event.id, n, mode, hotelClass, homeCity);
       renderSelectionVizzes(EVENTS, event, n, mode, hotelClass, homeCity);
