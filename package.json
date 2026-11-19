@@ -1,0 +1,15 @@
+{
+  "name": "cost-of-attending-events",
+  "private": true,
+  "type": "module",
+  "description": "The Real Ticket: static site plus a small server for the Claude-powered trip assistant.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0"
+  }
+}

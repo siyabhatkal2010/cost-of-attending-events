@@ -394,5 +394,6 @@
     initMap();
     loadEvents().then(events => { EVENTS = events; homeCitySelect.innerHTML = option("", "Outside these cities") + unique(EVENTS.map(event => event.city)).map(city => option(city, city)).join(""); const featured = EVENTS.find(e => e.performer === "Olivia Rodrigo") || EVENTS[0]; categorySelect.value = featured.type; scaleBudgetRange(); scaleDistanceRange(); updateCategoryControls(); fillEvents(featured.id); initCalendarHeatmap(EVENTS, chooseEvent); }).catch(error => showLoadError(document.querySelector(".filter-card"), error));
   </script>
+  <script src="chatbot.js?v=1" defer></script>
 </body>
 </html>
