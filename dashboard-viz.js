@@ -20,11 +20,13 @@ function renderSelectionVizzes(events, selected, travelers, mode, hotelClass, ho
   const performerEvents = events.filter(event => event.performer === selected.performer);
   const performerRows = unique(performerEvents.map(event => event.city)).map(city => {
     const cityEvents = performerEvents.filter(event => event.city === city);
-    const best = cityEvents.map(event => ({ event, cost: tripCost(event, travelers, mode, hotelClass, homeCity) })).sort((a, b) => a.cost.total - b.cost.total)[0];
-    return { city, total: best.cost.total };
-  }).sort((a, b) => a.total - b.total);
-  const artistMax = Math.max(1, ...performerRows.map(row => row.total));
-  artistHost.innerHTML = `<p class="selection-name">${esc(selected.performer)}</p><div class="mini-bars">${performerRows.map((row, index) => `<div class="mini-bar-row${row.city === selected.city ? " active" : ""}"><span>${esc(row.city)}</span><i><b style="width:${row.total / artistMax * 100}%"></b></i><strong>${money(row.total)}</strong>${index === 0 && performerRows.length > 1 ? '<em>best</em>' : ""}</div>`).join("")}</div>`;
+    const best = cityEvents.map(event => ({ event, cost: tripCost(event, travelers, mode, hotelClass, homeCity) }))
+      .filter(item => !item.cost.airfareMissing)
+      .sort((a, b) => a.cost.total - b.cost.total)[0];
+    return best ? { city, total: best.cost.total } : null;  
+    }).filter(Boolean).sort((a, b) => a.total - b.total);
+    const artistMax = Math.max(1, ...performerRows.map(row => row.total));
+    artistHost.innerHTML = `<p class="selection-name">${esc(selected.performer)}</p><div class="mini-bars">${performerRows.map((row, index) => `<div class="mini-bar-row${row.city === selected.city ? " active" : ""}"><span>${esc(row.city)}</span><i><b style="width:${row.total / artistMax * 100}%"></b></i><strong>${money(row.total)}</strong>${index === 0 && performerRows.length > 1 ? '<em>best</em>' : ""}</div>`).join("")}</div>`;
 
   const cityEvents = events.filter(event => event.city === selected.city);
   const typeMeta = {
@@ -43,7 +45,8 @@ function renderSelectionVizzes(events, selected, travelers, mode, hotelClass, ho
     { label: "Tickets", value: trip.tickets, color: "#78aefc" },
     { label: "Hotel", value: trip.hotel, color: "#ff8052" },
     { label: "Meals", value: trip.meals, color: "#38c997" },
-    { label: mode === "drive" ? "Parking" : "Transit", value: trip.localTravel, color: "#ad8aff" }
+    { label: "Airfare", value: trip.airfare, color: "#f2c94c" },
+    { label: localTravelLabel(mode), value: trip.localTravel, color: "#ad8aff" }
   ].filter(part => part.value > 0).sort((a, b) => b.value - a.value);
   const rects = treemapLayout(parts, 0, 0, 320, 96, true);
   treemapHost.innerHTML = `<svg class="mini-treemap" viewBox="0 0 320 96" role="img" aria-label="Cost breakdown for ${esc(selected.name)}">${rects.map(rect => `<g><rect x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" rx="2" fill="${rect.item.color}"><title>${esc(rect.item.label)}: ${money(rect.item.value)}</title></rect>${rect.width > 32 && rect.height > 18 ? `<text x="${rect.x + 5}" y="${rect.y + 15}">${esc(rect.item.label)}</text>${rect.width > 46 && rect.height > 29 ? `<text class="value" x="${rect.x + 5}" y="${rect.y + 29}">${money(rect.item.value)}</text>` : ""}` : ""}</g>`).join("")}</svg>`;

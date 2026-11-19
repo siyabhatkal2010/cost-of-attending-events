@@ -6,7 +6,7 @@ function renderCostScatter(events, travelers, mode, selectedId, onSelect, hotelC
   const plotW = width-left-right, plotH = height-top-bottom;
   const records = events.map(event => {
     const c = tripCost(event, travelers, mode, hotelClass, homeCity);
-    return {event, x:c.tickets, y:c.hotel+c.meals+c.localTravel, total:c.total};
+    return {event, x:c.tickets, y:c.hotel+c.meals+c.localTravel+c.airfare, total:c.total};
   });
   const maxX = Math.max(1,...records.map(d=>d.x))*1.12;
   const maxY = Math.max(1,...records.map(d=>d.y))*1.12;
@@ -16,7 +16,7 @@ function renderCostScatter(events, travelers, mode, selectedId, onSelect, hotelC
   const palette = ['#78aefc','#ff8052','#38c997','#ad8aff','#f0c674','#ef6f9a','#5fd1c8','#f6a04d','#8fc76b','#6fa8dc'];
   const cityNames = [...new Set(events.map(event => event.city))].sort();
   const colors = Object.fromEntries(cityNames.map((city, index) => [city, palette[index % palette.length]]));
-  let svg = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Scatterplot of ticket costs versus local trip costs for ${travelers} traveler(s), using ${mode === 'drive'?'parking':'transit'}" xmlns="http://www.w3.org/2000/svg">`;
+  let svg = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Scatterplot of ticket costs versus local trip costs for ${travelers} traveler(s), using ${mode === 'drive'?'parking':mode === 'flight'?'airfare and transit':'transit'}" xmlns="http://www.w3.org/2000/svg">`;
   for(let i=0;i<=4;i++) {
     const vx=maxX*i/4, vy=maxY*i/4, gx=x(vx), gy=y(vy);
     svg+=`<line x1="${gx}" y1="${top}" x2="${gx}" y2="${top+plotH}" stroke="#34414a"/><line x1="${left}" y1="${gy}" x2="${left+plotW}" y2="${gy}" stroke="#34414a"/><text x="${gx}" y="${top+plotH+23}" text-anchor="middle" fill="#bcc4c7" font-size="13">${money(vx)}</text><text x="${left-12}" y="${gy+4}" text-anchor="end" fill="#bcc4c7" font-size="13">${money(vy)}</text>`;
@@ -29,7 +29,7 @@ function renderCostScatter(events, travelers, mode, selectedId, onSelect, hotelC
   svg+='</svg>';
   host.innerHTML=svg;
   const panel = document.getElementById("scatterDetail");
-  const show = d => { if (!panel) return; const c=tripCost(d.event,travelers,mode,hotelClass,homeCity); panel.innerHTML = `<h3>${escapeHtml(d.event.city)}</h3><p>${escapeHtml(d.event.name)} · ${escapeHtml(dateLabel(d.event.date))}</p><ul class="viz-breakdown"><li>Tickets <strong>${money(c.tickets)}</strong></li><li>${escapeHtml(hotelCostLabel(c))} <strong>${money(c.hotel)}</strong></li><li>Meals <strong>${money(c.meals)}</strong></li><li>${mode === "drive" ? "Parking" : "Transit"} <strong>${money(c.localTravel)}</strong></li><li class="viz-total">Estimated total <strong>${money(c.total)}</strong></li></ul><p class="data-note">${travelers} traveler${travelers===1?"":"s"}${c.isHomeCity?" · lodging removed for your home city":""}. Click a dot to select this event in the planner.</p>`; };
+  const show = d => { if (!panel) return; const c=tripCost(d.event,travelers,mode,hotelClass,homeCity); panel.innerHTML = `<h3>${escapeHtml(d.event.city)}</h3><p>${escapeHtml(d.event.name)} · ${escapeHtml(dateLabel(d.event.date))}</p><ul class="viz-breakdown"><li>Tickets <strong>${money(c.tickets)}</strong></li><li>${escapeHtml(hotelCostLabel(c))} <strong>${money(c.hotel)}</strong></li><li>Meals <strong>${money(c.meals)}</strong></li>${c.airfare ? `<li>Airfare <strong>${money(c.airfare)}</strong></li>` : ""}<li>${localTravelLabel(mode)} <strong>${money(c.localTravel)}</strong></li><li class="viz-total">Estimated total <strong>${money(c.total)}</strong></li></ul><p class="data-note">${travelers} traveler${travelers===1?"":"s"}${c.isHomeCity?" · lodging removed for your home city":""}. Click a dot to select this event in the planner.</p>`; };
   const escapeHtml = v => String(v).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const chosen = records.find(d=>d.event.id===selectedId); if(chosen) show(chosen);
   host.querySelectorAll('[data-point]').forEach(node=>{
@@ -40,5 +40,5 @@ function renderCostScatter(events, travelers, mode, selectedId, onSelect, hotelC
     node.addEventListener('click',select);
     node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}});
   });
-  document.getElementById('scatterCount').textContent=`${records.length} sample events · ${travelers} traveler${travelers===1?'':'s'} · ${HOTEL_LABELS[hotelClass].toLowerCase()}${homeCity?` · home: ${homeCity}`:''} · ${mode==='drive'?'drive + park':'transit'}`;
+  document.getElementById('scatterCount').textContent=`${records.length} sample events · ${travelers} traveler${travelers===1?'':'s'} · ${HOTEL_LABELS[hotelClass].toLowerCase()}${homeCity?` · home: ${homeCity}`:''} · ${mode==='drive'?'drive + park':mode==='flight'?'flight':'transit'}`;
 }

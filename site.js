@@ -49,6 +49,14 @@ const HOTEL_LABELS = {
   five_star: "Five-star hotel"
 };
 
+const FLIGHT_FARES = {};
+let FLIGHT_FARE_PERIOD = "";
+function fareKey(a, b) { return [a, b].sort().join("|"); }
+function flightFare(from, to) {
+  const fare = FLIGHT_FARES[fareKey(from, to)];
+  return Number.isFinite(fare) ? fare : null;
+}
+
 function parseCSV(text) {
   const rows = [];
   let row = [], value = "", quoted = false;
@@ -70,17 +78,24 @@ function parseCSV(text) {
 }
 
 async function loadEvents() {
-  const [response, hotelResponse] = await Promise.all([
+  const [response, hotelResponse, fareResponse] = await Promise.all([
     fetch("data/synthetic_25_metro_real_event_prices.csv"),
-    fetch("data/hotel_quality_costs.csv")
+    fetch("data/hotel_quality_costs.csv"),
+    fetch("data/airfares_by_city_pair.csv")
   ]);
   if (!response.ok) throw new Error(`Event data could not be loaded (${response.status}).`);
   if (!hotelResponse.ok) throw new Error(`Hotel data could not be loaded (${hotelResponse.status}).`);
+  if (!fareResponse.ok) throw new Error(`Airfare data could not be loaded (${fareResponse.status}).`);
   parseCSV(await hotelResponse.text()).forEach(row => {
     HOTEL_COSTS[row.city] = {
       motel: Number(row.motel), standard: Number(row.standard),
       upscale: Number(row.upscale), five_star: Number(row.five_star)
     };
+  });
+  parseCSV(await fareResponse.text()).forEach(row => {
+    const fare = Number(row.avg_fare);
+    if (row.city_a && row.city_b && Number.isFinite(fare)) FLIGHT_FARES[fareKey(row.city_a, row.city_b)] = fare;
+    if (row.period) FLIGHT_FARE_PERIOD = row.period;
   });
   Object.entries(CITY_COSTS).forEach(([city, costs]) => {
     if (!HOTEL_COSTS[city]) HOTEL_COSTS[city] = {
@@ -119,8 +134,23 @@ function tripCost(event, travelers = 1, travelMode = "drive", hotelClass = "stan
   const isHomeCity = Boolean(homeCity) && event.city === homeCity;
   const hotel = isHomeCity ? 0 : nightlyRate * rooms;
   const meals = city.meal * travelers;
-  const localTravel = travelMode === "transit" ? city.transit * 2 * travelers : city.parking;
-  return { tickets, hotel, meals, localTravel, rooms, nightlyRate, hotelClass, homeCity, isHomeCity, total: tickets + hotel + meals + localTravel };
+  let airfare = 0, airfareMissing = false, farePerPerson = 0;
+  if (travelMode === "flight") {
+    if (!isHomeCity) {
+      const fare = homeCity ? flightFare(homeCity, event.city) : null;
+      if (fare === null) airfareMissing = true;
+      else { farePerPerson = fare; airfare = fare * travelers; }
+    }
+  }
+  const localTravel = (travelMode === "transit" || travelMode === "flight")
+    ? city.transit * 2 * travelers
+    : city.parking;
+  return { tickets, hotel, meals, localTravel, airfare, farePerPerson, airfareMissing, rooms, nightlyRate, hotelClass, homeCity, isHomeCity, total: tickets + hotel + meals + localTravel + airfare };
+  }
+
+function localTravelLabel(mode, long = false) {
+  if (mode === "drive") return "Parking";
+    return long ? "Round-trip transit" : "Transit";
 }
 
 function hotelCostLabel(cost) {
